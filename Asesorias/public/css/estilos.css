@@ -1,0 +1,513 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
+
+/* ================= BASE ================= */
+body {
+    margin: 0;
+    font-family: 'Roboto', sans-serif;
+    background: linear-gradient(135deg, #0f172a, #1e293b);
+    color: white;
+    overflow-x: hidden;
+    animation: fadeIn 0.5s ease-in-out;
+}
+
+/* ANIMACIÓN */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* SCROLL */
+::-webkit-scrollbar {
+    width: 6px;
+}
+::-webkit-scrollbar-thumb {
+    background: linear-gradient(#7c3aed, #a855f7);
+    border-radius: 10px;
+}
+
+/* ================= HEADER ================= */
+.header-pro {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    padding: 10px 20px;
+    background: linear-gradient(90deg, #541469, #7c3aed);
+
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+
+    position: relative;
+    overflow: visible;
+
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+
+    box-shadow: 0 4px 25px rgba(0,0,0,0.4);
+
+    min-height: 80px;
+
+    z-index: 100; /* 🔥 FIX */
+}
+
+/* CENTRO */
+.header-center {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+
+    text-align: center;
+
+    max-width: 60%;
+    pointer-events: none;
+}
+
+.header-center h1 {
+    font-size: 40px;
+    margin: 0;
+    font-weight: bold;
+    letter-spacing: 2px;
+    text-shadow: 0 5px 20px rgba(168,85,247,0.8);
+}
+
+/* DERECHA */
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
+/* FOTO */
+.user-img {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+
+    border: 2px solid #a855f7;
+    box-shadow: 0 0 10px rgba(168,85,247,0.7);
+
+    transition: 0.3s;
+    cursor: pointer;
+}
+
+.user-img:hover {
+    transform: scale(1.1);
+    box-shadow: 0 0 15px rgba(168,85,247,1);
+}
+
+/* BOTÓN USUARIO */
+.btn-user {
+    border: 1px solid rgba(255,255,255,0.3);
+    color: white;
+    background: rgba(255,255,255,0.05);
+    backdrop-filter: blur(10px);
+    border-radius: 10px;
+    padding: 6px 12px;
+    transition: 0.3s;
+}
+
+.btn-user:hover {
+    background: rgba(255,255,255,0.1);
+}
+
+/* ================= DROPDOWN (FIX) ================= */
+.dropdown {
+    position: relative;
+    z-index: 100000 !important; /* 🔥 clave */
+}
+
+.dropdown-menu {
+    position: absolute !important;
+    right: 0 !important;
+    left: auto !important;
+
+    min-width: 220px;
+    background: linear-gradient(180deg, #0f172a, #020617);
+    border: 1px solid rgba(124,58,237,0.4);
+    border-radius: 12px;
+    padding: 10px;
+
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+
+    z-index: 100000 !important;
+}
+
+.menu-user .dropdown-item {
+    color: white;
+    border-radius: 8px;
+}
+
+.menu-user .dropdown-item:hover {
+    background: #7c3aed;
+}
+
+/* ================= NAV ================= */
+.nav-pro {
+    display: flex;
+    justify-content: center;
+    gap: 80px;
+
+    padding: 10px;
+
+    background: rgba(255,255,255,0.05);
+    backdrop-filter: blur(10px);
+
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.nav-pro a {
+    color: white;
+    text-decoration: none;
+    font-size: 20px;
+    font-weight: bold;
+    position: relative;
+    transition: 0.3s;
+}
+
+.nav-pro a:hover {
+    color: #c084fc;
+}
+
+.nav-pro a::after {
+    content: "";
+    position: absolute;
+    width: 0%;
+    height: 2px;
+    background: #c084fc;
+    bottom: -5px;
+    left: 0;
+    transition: 0.3s;
+}
+
+.nav-pro a:hover::after {
+    width: 100%;
+}
+
+/* ================= GLASS ================= */
+.glass {
+    background: rgba(255,255,255,0.05);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 15px;
+    padding: 15px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+}
+
+/* ================= TEMARIO ================= */
+#temarioApp {
+    background: linear-gradient(180deg, #711092, #020617);
+    border-radius: 20px;
+    padding: 15px;
+    box-shadow: 0 15px 40px rgba(124,58,237,0.4);
+    border: 1px solid rgba(124,58,237,0.3);
+
+    overflow: visible !important;
+}
+
+#temarioApp h5 {
+    color: #ffffff;
+    font-weight: bold;
+}
+
+#temarioApp .btn-light {
+    background: #334155;
+    color: white;
+    border: 1px solid rgba(124,58,237,0.3);
+    border-radius: 12px;
+    padding: 12px;
+    font-weight: 600;
+}
+
+#temarioApp .btn-light:hover {
+    background: linear-gradient(90deg, #7c3aed, #9333ea);
+    box-shadow: 0 0 15px rgba(124,58,237,0.6);
+}
+
+/* ================= BOTONES ================= */
+.btn-primary {
+    background: linear-gradient(90deg, #7c3aed, #9333ea);
+    border: none;
+    transition: 0.3s;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(124,58,237,0.5);
+}
+
+/* ================= MODALES (FIX) ================= */
+.modal-dialog {
+    margin-top: 80px; /* 🔥 separa del temario */
+}
+
+.modal {
+    z-index: 3000 !important;
+}
+
+.modal-content {
+    border-radius: 15px;
+    background: linear-gradient(180deg, #1e293b, #0f172a);
+    border: 1px solid rgba(124,58,237,0.4);
+    box-shadow: 0 10px 30px rgba(124,58,237,0.5);
+    color: white;
+}
+
+.modal input {
+    background: #020617;
+    color: white;
+    border: 1px solid rgba(124,58,237,0.4);
+}
+
+.modal button {
+    color: white;
+}
+
+/* ================= SUMMERNOTE ================= */
+.note-editor {
+    border-radius: 12px !important;
+    overflow: hidden;
+    border: 2px solid rgba(124,58,237,0.5) !important;
+    box-shadow: 0 10px 30px rgba(124,58,237,0.3);
+    position: relative;
+    z-index: 2500 !important;
+}
+
+.note-toolbar {
+    background: linear-gradient(90deg, #ede9fe, #f5f3ff) !important;
+}
+
+.note-editable {
+    background: #fff !important;
+    color: black !important;
+}
+
+/* ================= CHATBOT ================= */
+#chatbotSidebar {
+    background: #0f172a;
+    border-left: 3px solid #7c3aed;
+}
+
+#chatbotContent {
+    background: #1e293b;
+}
+
+#chatbotSidebar input {
+    background: #020617;
+    color: white;
+}
+
+#chatbotSidebar button {
+    background: linear-gradient(90deg, #7c3aed, #9333ea);
+}
+
+#chatbotSidebar {
+    position: fixed;
+    top: 0;
+    right: -350px;
+    width: 350px;
+    height: 100vh;
+
+    /* 🔥 GLASS */
+    background: rgba(15, 23, 42, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+
+    border-left: 3px solid #7c3aed;
+
+    box-shadow: -5px 0 25px rgba(0,0,0,0.5);
+
+    transition: right 0.3s ease;
+
+    z-index: 999999; /* 🔥 ARRIBA DE TODO */
+
+    display: flex;
+    flex-direction: column;
+}
+
+/* CUANDO ESTÁ ABIERTO */
+#chatbotSidebar.active {
+    right: 0;
+}
+
+/* HEADER DEL CHAT */
+#chatbotSidebar header {
+    padding: 15px;
+    background: linear-gradient(90deg, #541469, #7c3aed);
+    color: white;
+
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    box-shadow: 0 5px 15px rgba(0,0,0,0.4);
+}
+
+/* CONTENIDO */
+#chatbotContent {
+    flex-grow: 1;
+    padding: 15px;
+    overflow-y: auto;
+
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+
+    /* 🔥 GLASS INTERIOR */
+    background: rgba(30, 41, 59, 0.6);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+/* MENSAJES */
+#chatbotSidebar p {
+    max-width: 75%;
+    padding: 10px 15px;
+    border-radius: 20px;
+    font-size: 14px;
+}
+
+/* USUARIO */
+#chatbotSidebar p.user-message {
+    background: linear-gradient(90deg, #7c3aed, #9333ea);
+    color: white;
+    align-self: flex-end;
+    box-shadow: 0 3px 10px rgba(124,58,237,0.4);
+}
+
+/* BOT */
+#chatbotSidebar p.bot-message {
+    background: rgba(255,255,255,0.9);
+    color: #111;
+    align-self: flex-start;
+}
+
+/* INPUT */
+#chatbotSidebar input {
+    background: rgba(2, 6, 23, 0.8);
+    backdrop-filter: blur(8px);
+    color: white;
+    border: 1px solid rgba(124,58,237,0.5);
+    border-radius: 10px;
+}
+
+/* BOTÓN */
+#chatbotSidebar button {
+    background: linear-gradient(90deg, #7c3aed, #9333ea);
+    border: none;
+    transition: 0.3s;
+}
+
+#chatbotSidebar button:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 10px rgba(124,58,237,0.6);
+}
+
+/* ================= FIX IMPORTANTE ================= */
+.container-fluid,
+.row,
+.col-md-9,
+.col-lg-10 {
+    overflow: visible !important;
+}
+
+/* ================= MODAL TEXT FIX ================= */
+.modal .modal-title {
+    color: white;
+}
+
+.modal .form-control {
+    background-color: #020617;
+    color: white;
+    border: 1px solid rgba(124,58,237,0.4);
+}
+
+.modal .form-control::placeholder {
+    color: rgba(255,255,255,0.6);
+}
+
+/* Esto arregla labels si algún día usas */
+.modal label {
+    color: white;
+}
+
+/* Cuando haces focus en el input */
+.modal .form-control:focus {
+    background-color: #020617;
+    color: white;
+    border-color: #a855f7;
+    box-shadow: 0 0 0 0.2rem rgba(124,58,237,0.25);
+}
+
+/* ================= BOTÓN CERRAR BLANCO ================= */
+.modal .btn-close {
+    filter: invert(1) brightness(2);
+}
+
+/* FIX SUMMERNOTE */
+.note-editor {
+    position: relative;
+    z-index: 2500 !important;
+}
+
+/* FIX MODALES */
+.modal {
+    z-index: 3000 !important;
+}
+
+/* FIX CHATBOT */
+#chatbotSidebar {
+    z-index: 1500;
+}
+
+.note-modal-backdrop {
+    z-index: 199999 !important;
+}
+
+.modal-backdrop {
+    z-index: 1040 !important;
+}
+
+.modal {
+    z-index: 1050 !important;
+}
+
+.modal-backdrop.show {
+    opacity: 0.1 !important; /* 🔥 menos oscuro */
+    pointer-events: none !important;
+}
+
+#ejerciciosApp {
+    background: linear-gradient(180deg, #711092, #020617);
+    border-radius: 20px;
+    padding: 15px;
+    box-shadow: 0 15px 40px rgba(124,58,237,0.4);
+    border: 1px solid rgba(124,58,237,0.3);
+
+    overflow: visible !important;
+}
+
+#ejerciciosApp h5 {
+    color: #ffffff;
+    font-weight: bold;
+}
+
+#ejerciciosApp .btn-light {
+    background: #334155;
+    color: white;
+    border: 1px solid rgba(124,58,237,0.3);
+    border-radius: 12px;
+    padding: 12px;
+    font-weight: 600;
+}
+
+#ejerciciosApp .btn-light:hover {
+    background: linear-gradient(90deg, #7c3aed, #9333ea);
+    box-shadow: 0 0 15px rgba(124,58,237,0.6);
+}
