@@ -5,8 +5,9 @@ namespace App\Models;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Tymon\JWTAuth\Contracts\JWTSubject; // 🔥 IMPORTANTE
 
-class User extends Authenticatable
+class User extends Authenticatable implements JWTSubject
 {
     use HasFactory, Notifiable;
 
@@ -24,6 +25,28 @@ class User extends Authenticatable
         'password',
         'remember_token',
     ];
+
+    /*
+    |--------------------------------------------------------------------------
+    | JWT METHODS (OBLIGATORIO)
+    |--------------------------------------------------------------------------
+    */
+
+    public function getJWTIdentifier()
+    {
+        return $this->getKey();
+    }
+
+    public function getJWTCustomClaims()
+    {
+        return [];
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | RELACIONES
+    |--------------------------------------------------------------------------
+    */
 
     // Relación con Materias
     public function materias()

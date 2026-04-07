@@ -2,11 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Subtema;
-use App\Models\Contenido;
-use App\Models\Multimedia;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
+use App\Models\Subtema;
+use App\Models\Multimedia;
 
 class MultimediaController extends Controller
 {
@@ -28,6 +26,9 @@ class MultimediaController extends Controller
             'id_contenido' => $contenido->id,
         ]);
 
-        return response()->json(['success' => true, 'imagen' => $multimedia]);
+        return response()->json([
+            'success' => true,
+            'data' => $multimedia
+        ]);
     }
 }

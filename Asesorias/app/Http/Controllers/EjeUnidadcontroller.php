@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
@@ -14,39 +15,31 @@ class EjeUnidadController extends Controller
             'numero_unidad' => 'required|integer|min:1',
         ]);
 
-        try {
-            $unidad = EjeUnidad::create([
-                'nombre' => $request->nombre,
-                'titulo' => $request->titulo,
-                'id_materia' => $materiaId,
-                'numero_unidad' => $request->numero_unidad,
-                'orden' => $request->numero_unidad,
-            ]);
+        $unidad = EjeUnidad::create([
+            'nombre' => $request->nombre,
+            'titulo' => $request->titulo,
+            'id_materia' => $materiaId,
+            'numero_unidad' => $request->numero_unidad,
+            'orden' => $request->numero_unidad,
+        ]);
 
-            // ⚠️ Siempre devolver JSON
-            return response()->json([
-                'success' => true,
-                'mensaje' => 'Unidad creada correctamente',
-                'unidad' => $unidad
-            ]);
+        return response()->json([
+            'success' => true,
+            'message' => 'Unidad creada correctamente',
+            'data' => $unidad
+        ], 201);
+    }
 
-        } catch (\Exception $e) {
+    public function update(Request $request, $unidadId)
+    {
+        $unidad = EjeUnidad::find($unidadId);
+
+        if (!$unidad) {
             return response()->json([
                 'success' => false,
-                'mensaje' => 'Error al guardar unidad: '.$e->getMessage()
-            ], 500);
+                'message' => 'Unidad no encontrada'
+            ], 404);
         }
-    }
-    public function update(Request $request, $unidadId)
-{
-    $request->validate([
-        'nombre' => 'required|string|max:150',
-        'titulo' => 'nullable|string|max:255',
-        'numero_unidad' => 'required|integer|min:1',
-    ]);
-
-    try {
-        $unidad = EjeUnidad::findOrFail($unidadId);
 
         $unidad->update([
             'nombre' => $request->nombre,
@@ -57,34 +50,27 @@ class EjeUnidadController extends Controller
 
         return response()->json([
             'success' => true,
-            'mensaje' => 'Unidad actualizada correctamente',
-            'unidad' => $unidad
+            'message' => 'Unidad actualizada',
+            'data' => $unidad
         ]);
-
-    } catch (\Exception $e) {
-        return response()->json([
-            'success' => false,
-            'mensaje' => 'Error al actualizar unidad: '.$e->getMessage()
-        ], 500);
     }
-}
-public function destroy($unidadId)
-{
-    try {
-        $unidad = EjeUnidad::findOrFail($unidadId);
+
+    public function destroy($unidadId)
+    {
+        $unidad = EjeUnidad::find($unidadId);
+
+        if (!$unidad) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unidad no encontrada'
+            ], 404);
+        }
+
         $unidad->delete();
 
         return response()->json([
             'success' => true,
-            'mensaje' => 'Unidad eliminada correctamente'
+            'message' => 'Unidad eliminada'
         ]);
-
-    } catch (\Exception $e) {
-        return response()->json([
-            'success' => false,
-            'mensaje' => 'Error al eliminar unidad: '.$e->getMessage()
-        ], 500);
     }
-}
-
 }

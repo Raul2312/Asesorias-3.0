@@ -5,9 +5,16 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
+use Tymon\JWTAuth\Facades\JWTAuth;
+use Tymon\JWTAuth\Exceptions\JWTException;
 
 class AuthController extends Controller
 {
+    /*
+    |--------------------------------------------------------------------------
+    | REGISTRO
+    |--------------------------------------------------------------------------
+    */
     public function register(Request $request)
     {
         $request->validate([
@@ -18,16 +25,16 @@ class AuthController extends Controller
             'password' => 'required|string|min:6',
             'nivel' => 'required|in:alumno,docente',
         ]);
-         // 🔐 PIN FIJO DE DOCENTE
-    $PIN_DOCENTE = env('DOCENTE_PIN', 'ITSNCG2026');
 
-    if ($request->nivel === 'docente') {
-        if ($request->pin_docente !== $PIN_DOCENTE) {
-            return redirect()->back()
-                ->with('error', 'PIN de docente incorrecto')
-                ->withInput();
+        // 🔐 PIN docente
+        $PIN_DOCENTE = env('DOCENTE_PIN', 'ITSNCG2026');
+
+        if ($request->nivel === 'docente' && $request->pin_docente !== $PIN_DOCENTE) {
+            return response()->json([
+                'success' => false,
+                'message' => 'PIN de docente incorrecto'
+            ], 403);
         }
-    }
 
         $user = User::create([
             'nombre' => $request->nombre,
@@ -38,15 +45,18 @@ class AuthController extends Controller
             'password' => Hash::make($request->password),
         ]);
 
-        session([
-            'usuario_id' => $user->id,
-            'usuario_nombre' => $user->nombre,
-            'usuario_nivel' => $user->nivel
-        ]);
-
-        return redirect()->route('login.form')->with('success', '¡Registro exitoso! Ahora inicia sesión.');
+        return response()->json([
+            'success' => true,
+            'message' => 'Usuario registrado correctamente',
+            'data' => $user
+        ], 201);
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | LOGIN
+    |--------------------------------------------------------------------------
+    */
     public function login(Request $request)
     {
         $request->validate([
@@ -54,26 +64,69 @@ class AuthController extends Controller
             'password' => 'required|string'
         ]);
 
-        $user = User::where('email', $request->email)->first();
+        $credentials = $request->only('email', 'password');
 
-        if (!$user || !Hash::check($request->password, $user->password)) {
-            return redirect()->back()->with('error', 'Correo o contraseña incorrectos.');
+        try {
+
+            if (!$token = JWTAuth::attempt($credentials)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Credenciales inválidas'
+                ], 401);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Login exitoso',
+                'data' => [
+                    'token' => $token,
+                    'user' => auth()->user()
+                ]
+            ]);
+
+        } catch (JWTException $e) {
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al generar el token'
+            ], 500);
         }
-
-        session([
-            'usuario_id' => $user->id,
-            'usuario_nombre' => $user->nombre,
-            'usuario_nivel' => $user->nivel
-        ]);
-
-        return redirect()->route('Inicio')->with('success', 'Bienvenido de nuevo.');
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | USUARIO ACTUAL
+    |--------------------------------------------------------------------------
+    */
+    public function me()
+    {
+        return response()->json([
+            'success' => true,
+            'data' => auth()->user()
+        ]);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | LOGOUT
+    |--------------------------------------------------------------------------
+    */
     public function logout()
     {
-        session()->flush();
-        session()->invalidate();
-        session()->regenerateToken();
-        return redirect()->route('login.form');
+        try {
+            JWTAuth::invalidate(JWTAuth::getToken());
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Sesión cerrada correctamente'
+            ]);
+
+        } catch (JWTException $e) {
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al cerrar sesión'
+            ], 500);
+        }
     }
 }

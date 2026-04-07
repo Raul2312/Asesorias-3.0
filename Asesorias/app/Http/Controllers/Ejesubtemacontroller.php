@@ -4,19 +4,25 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\EjeSubtema;
-use App\Models\Contenido;
 
-class EjesubtemaController extends Controller
+class EjeSubtemaController extends Controller
 {
     public function show($subtemaId)
     {
         $subtema = EjeSubtema::with(['unidad.materia', 'contenidos'])
-            ->findOrFail($subtemaId);
+            ->find($subtemaId);
 
-        $usuario_nivel = session('usuario_nivel', 'alumno'); 
-        $materia = $subtema->unidad->materia ?? null;
+        if (!$subtema) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Subtema no encontrado'
+            ], 404);
+        }
 
-        return view('subtema.show', compact('subtema', 'usuario_nivel', 'materia'));
+        return response()->json([
+            'success' => true,
+            'data' => $subtema
+        ]);
     }
 
     public function store(Request $request)
@@ -31,20 +37,50 @@ class EjesubtemaController extends Controller
             'nombre' => $request->nombre,
         ]);
 
-        return response()->json(['success' => true, 'subtema' => $subtema]);
+        return response()->json([
+            'success' => true,
+            'data' => $subtema
+        ], 201);
     }
 
     public function update(Request $request, $subtemaId)
     {
-        $subtema = EjeSubtema::findOrFail($subtemaId);
-        $subtema->update(['nombre' => $request->nombre]);
+        $subtema = EjeSubtema::find($subtemaId);
 
-        return response()->json(['success' => true]);
+        if (!$subtema) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Subtema no encontrado'
+            ], 404);
+        }
+
+        $subtema->update([
+            'nombre' => $request->nombre
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Subtema actualizado',
+            'data' => $subtema
+        ]);
     }
 
     public function destroy($subtemaId)
     {
-        EjeSubtema::findOrFail($subtemaId)->delete();
-        return response()->json(['success' => true]);
+        $subtema = EjeSubtema::find($subtemaId);
+
+        if (!$subtema) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Subtema no encontrado'
+            ], 404);
+        }
+
+        $subtema->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Subtema eliminado'
+        ]);
     }
 }

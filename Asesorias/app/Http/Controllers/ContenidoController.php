@@ -4,50 +4,50 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Contenido;
-use App\Models\Subtema;
 
 class ContenidoController extends Controller
 {
     // Mostrar contenido
     public function show(Contenido $contenido)
     {
-        $usuario_nivel = session('usuario_nivel', 'alumno');
-        return view('contenidos.show', compact('contenido', 'usuario_nivel'));
+        return response()->json([
+            'success' => true,
+            'data' => $contenido
+        ]);
     }
 
-    // Crear nuevo contenido dentro de un subtema
+    // Crear contenido
     public function store(Request $request)
-{
-    $request->validate([
-        'id_subtema' => 'required|exists:subtemas,id',
-        'titulo' => 'required|string|max:200',
-        'contenido' => 'required|string',
-    ]);
+    {
+        $request->validate([
+            'id_subtema' => 'required|exists:subtemas,id',
+            'titulo' => 'required|string|max:200',
+            'contenido' => 'required|string',
+        ]);
 
-    $contenido = Contenido::create([
-        'id_subtema' => $request->id_subtema,
-        'id_user' => session('usuario_id'), // ⚡ así funciona con tu sistema
-        'titulo' => $request->titulo,
-        'contenido' => $request->contenido,
-    ]);
+        $contenido = Contenido::create([
+            'id_subtema' => $request->id_subtema,
+            'id_user' => auth()->id(), // 🔥 ahora con usuario autenticado
+            'titulo' => $request->titulo,
+            'contenido' => $request->contenido,
+        ]);
 
-    return response()->json([
-        'success' => true,
-        'contenido' => $contenido,
-        'mensaje' => 'Contenido creado correctamente',
-    ]);
-}
+        return response()->json([
+            'success' => true,
+            'message' => 'Contenido creado correctamente',
+            'data' => $contenido
+        ], 201);
+    }
 
-
-    // Actualizar contenido existente
+    // Actualizar contenido
     public function update(Request $request, Contenido $contenido)
     {
-        $usuario_nivel = session('usuario_nivel', 'alumno');
+        $user = auth()->user();
 
-        if ($usuario_nivel !== 'docente') {
+        if ($user->nivel !== 'docente') {
             return response()->json([
                 'success' => false,
-                'mensaje' => 'No tienes permisos para editar este contenido.'
+                'message' => 'No tienes permisos para editar'
             ], 403);
         }
 
@@ -59,25 +59,25 @@ class ContenidoController extends Controller
         $contenido->update([
             'titulo' => $request->titulo,
             'contenido' => $request->contenido,
-            'id_user' => session('usuario_id') // siempre actualizar con el usuario que edita
+            'id_user' => $user->id
         ]);
 
         return response()->json([
             'success' => true,
-            'contenido' => $contenido,
-            'mensaje' => 'Contenido actualizado correctamente'
+            'message' => 'Contenido actualizado',
+            'data' => $contenido
         ]);
     }
 
     // Eliminar contenido
     public function destroy(Contenido $contenido)
     {
-        $usuario_nivel = session('usuario_nivel', 'alumno');
+        $user = auth()->user();
 
-        if ($usuario_nivel !== 'docente') {
+        if ($user->nivel !== 'docente') {
             return response()->json([
                 'success' => false,
-                'mensaje' => 'No tienes permisos para eliminar este contenido.'
+                'message' => 'No tienes permisos para eliminar'
             ], 403);
         }
 
@@ -85,7 +85,7 @@ class ContenidoController extends Controller
 
         return response()->json([
             'success' => true,
-            'mensaje' => 'Contenido eliminado correctamente'
+            'message' => 'Contenido eliminado'
         ]);
     }
 }

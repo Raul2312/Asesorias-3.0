@@ -23,15 +23,20 @@ class EjercicioController extends Controller
 
         return response()->json([
             'success' => true,
-            'ejercicio' => $ejercicio
-        ]);
+            'data' => $ejercicio
+        ], 201);
     }
 
-   public function update(Request $request, $id)
-{
-    try {
+    public function update(Request $request, $id)
+    {
+        $ejercicio = Ejercicio::find($id);
 
-        $ejercicio = Ejercicio::findOrFail($id);
+        if (!$ejercicio) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Ejercicio no encontrado'
+            ], 404);
+        }
 
         $request->validate([
             'contenido' => 'nullable|string'
@@ -43,34 +48,44 @@ class EjercicioController extends Controller
 
         return response()->json([
             'success' => true,
-            'mensaje' => 'Guardado correctamente'
+            'message' => 'Guardado correctamente',
+            'data' => $ejercicio
         ]);
-
-    } catch (\Exception $e) {
-
-        return response()->json([
-            'success' => false,
-            'mensaje' => $e->getMessage()
-        ], 500);
     }
-}
 
     public function destroy($id)
     {
-        Ejercicio::findOrFail($id)->delete();
+        $ejercicio = Ejercicio::find($id);
 
-        return response()->json(['success' => true]);
+        if (!$ejercicio) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Ejercicio no encontrado'
+            ], 404);
+        }
+
+        $ejercicio->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Ejercicio eliminado'
+        ]);
     }
 
-   public function show($id)
-{
-    $ejercicio = Ejercicio::findOrFail($id);
+    public function show($id)
+    {
+        $ejercicio = Ejercicio::with('unidad.materia')->find($id);
 
-    $materia = $ejercicio->unidad->materia; // 🔥 para el aside
+        if (!$ejercicio) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Ejercicio no encontrado'
+            ], 404);
+        }
 
-    $usuario_nivel = session('usuario_nivel', 'alumno');
-
-    return view('ejercicio.show', compact('ejercicio', 'materia', 'usuario_nivel'));
-}
-    
+        return response()->json([
+            'success' => true,
+            'data' => $ejercicio
+        ]);
+    }
 }

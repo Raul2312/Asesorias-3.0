@@ -10,49 +10,49 @@ class ImagenMateriaController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'id_materia' => 'required|integer',
+            'id_materia' => 'required|integer|exists:materias,id',
             'imagen' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'index' => 'required|integer|min:0|max:1' // solo 2 imágenes
+            'index' => 'required|integer|min:0|max:1'
         ]);
 
         $archivo = $request->file('imagen');
         $nombreArchivo = time().'_'.$archivo->getClientOriginalName();
-        $ruta = $archivo->move(public_path('img/materias'), $nombreArchivo);
+        $archivo->move(public_path('img/materias'), $nombreArchivo);
 
-        $index = $request->index;
-
-        // Buscar si ya hay imagen en esa posición
         $imagenExistente = ImagenMateria::where('id_materia', $request->id_materia)
             ->orderBy('id', 'asc')
-            ->skip($index)
+            ->skip($request->index)
             ->first();
 
         if ($imagenExistente) {
-            // Reemplazar
-            $imagenExistente->ruta = 'img/materias/'.$nombreArchivo;
-            $imagenExistente->save();
+            $imagenExistente->update([
+                'ruta' => 'img/materias/'.$nombreArchivo
+            ]);
             $imagen = $imagenExistente;
         } else {
-            // Crear nueva
             $imagen = ImagenMateria::create([
                 'id_materia' => $request->id_materia,
                 'ruta' => 'img/materias/'.$nombreArchivo,
-                'id_user' => session('usuario_id')
+                'id_user' => auth()->id()
             ]);
         }
 
         return response()->json([
             'success' => true,
-            'mensaje' => 'Imagen guardada correctamente',
-            'imagen' => $imagen
+            'data' => $imagen
         ]);
     }
 
     public function index($materia)
     {
-        return ImagenMateria::where('id_materia', $materia)
+        $imagenes = ImagenMateria::where('id_materia', $materia)
             ->orderBy('id', 'asc')
-            ->take(2) // solo 2
+            ->take(2)
             ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $imagenes
+        ]);
     }
 }
