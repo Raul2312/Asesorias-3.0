@@ -18,6 +18,8 @@ const Login = () => {
 
   const [materias, setMaterias] = useState<any[]>([]);
   const [isLogged, setIsLogged] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  const [user, setUser] = useState<any>(null); // 👈 usuario
 
   const handleChange = (e: any) => {
     setForm({
@@ -36,7 +38,8 @@ const Login = () => {
         password: form.password
       });
 
-      localStorage.setItem("token", res.data.token);
+      localStorage.setItem("token", res.data.data.token);
+      setUser(res.data.data.user); // 👈 guardamos usuario
       setIsLogged(true);
 
     } catch {
@@ -50,10 +53,8 @@ const Login = () => {
 
     try {
       await axios.post("http://127.0.0.1:8000/api/register", form);
-
       alert("Usuario registrado correctamente");
       setIsRegister(false);
-
     } catch (err: any) {
       console.log(err.response?.data);
       alert("Error al registrar");
@@ -71,10 +72,74 @@ const Login = () => {
         }
       });
 
-      setMaterias(res.data);
+      setMaterias(res.data.data);
 
     } catch {
       console.log("Error cargando materias");
+    }
+  };
+
+  // ➕ AGREGAR
+  const agregarMateria = async () => {
+    const nombre = prompt("Nombre de la materia");
+    if (!nombre) return;
+
+    try {
+      const token = localStorage.getItem("token");
+
+      await axios.post("http://127.0.0.1:8000/api/materias", {
+        nombre
+      }, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      getMaterias();
+
+    } catch {
+      alert("Error al crear materia");
+    }
+  };
+
+  // ✏️ EDITAR
+  const editarMateria = async (materia: any) => {
+    const nombre = prompt("Nuevo nombre", materia.nombre);
+    if (!nombre) return;
+
+    try {
+      const token = localStorage.getItem("token");
+
+      await axios.put(`http://127.0.0.1:8000/api/materias/${materia.id}`, {
+        nombre
+      }, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      getMaterias();
+
+    } catch {
+      alert("Error al editar");
+    }
+  };
+
+  // 🗑️ ELIMINAR
+  const eliminarMateria = async (id: number) => {
+    try {
+      const token = localStorage.getItem("token");
+
+      await axios.delete(`http://127.0.0.1:8000/api/materias/${id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      getMaterias();
+
+    } catch {
+      alert("Error al eliminar");
     }
   };
 
@@ -83,17 +148,19 @@ const Login = () => {
     localStorage.removeItem("token");
     setIsLogged(false);
     setMaterias([]);
+    setShowMenu(false);
+    setUser(null);
   };
 
   return (
     <div className="container">
 
-      {/* 🎬 VIDEO FONDO */}
+      {/* VIDEO */}
       <video autoPlay muted loop className="video-bg">
         <source src="/video.mp4" type="video/mp4" />
       </video>
 
-      {/* 🔥 NAVBAR */}
+      {/* NAVBAR */}
       <div className="navbar">
         <div className="logo-box">
           <h1>ITS</h1>
@@ -103,7 +170,42 @@ const Login = () => {
         <h2 className="title">Asesorías Académicas</h2>
 
         <div className="nav-right">
-          <button onClick={getMaterias}>Materias ▾</button>
+
+          <button onClick={() => {
+            getMaterias();
+            setShowMenu(!showMenu);
+          }}>
+            Materias ▾
+          </button>
+
+          {/* 📚 DROPDOWN */}
+          {showMenu && (
+            <div className="dropdown">
+
+              {/* SOLO DOCENTE */}
+              {user?.nivel === "docente" && (
+                <div className="dropdown-item add" onClick={agregarMateria}>
+                  ➕ Agregar materia
+                </div>
+              )}
+
+              {materias.map((m) => (
+                <div key={m.id} className="dropdown-item">
+
+                  <span>{m.nombre}</span>
+
+                  {user?.nivel === "docente" && (
+                    <div className="acciones">
+                      <button onClick={() => editarMateria(m)}>✏️</button>
+                      <button onClick={() => eliminarMateria(m.id)}>🗑️</button>
+                    </div>
+                  )}
+
+                </div>
+              ))}
+
+            </div>
+          )}
 
           {isLogged && (
             <button className="logout" onClick={logout}>
@@ -113,7 +215,7 @@ const Login = () => {
         </div>
       </div>
 
-      {/* 🔐 LOGIN / REGISTER */}
+      {/* LOGIN / REGISTER */}
       {!isLogged && (
         <div className="auth-box">
 
@@ -129,19 +231,8 @@ const Login = () => {
               </>
             )}
 
-            <input
-              type="email"
-              name="email"
-              placeholder="Correo"
-              onChange={handleChange}
-            />
-
-            <input
-              type="password"
-              name="password"
-              placeholder="Contraseña"
-              onChange={handleChange}
-            />
+            <input type="email" name="email" placeholder="Correo" onChange={handleChange} />
+            <input type="password" name="password" placeholder="Contraseña" onChange={handleChange} />
 
             {isRegister && (
               <>
@@ -151,11 +242,7 @@ const Login = () => {
                 </select>
 
                 {form.nivel === "docente" && (
-                  <input
-                    name="pin_docente"
-                    placeholder="PIN docente"
-                    onChange={handleChange}
-                  />
+                  <input name="pin_docente" placeholder="PIN docente" onChange={handleChange} />
                 )}
               </>
             )}
@@ -166,9 +253,7 @@ const Login = () => {
 
           </form>
 
-          {/* LINKS */}
           <div className="links">
-
             {!isRegister && (
               <span className="link">¿Olvidaste tu contraseña?</span>
             )}
@@ -178,20 +263,8 @@ const Login = () => {
                 ? "¿Ya tienes cuenta? Inicia sesión"
                 : "¿No tienes cuenta? Regístrate"}
             </span>
-
           </div>
 
-        </div>
-      )}
-
-      {/* 📚 MATERIAS */}
-      {materias.length > 0 && (
-        <div className="materias">
-          {materias.map((m) => (
-            <div key={m.id} className="card">
-              {m.nombre}
-            </div>
-          ))}
         </div>
       )}
 
