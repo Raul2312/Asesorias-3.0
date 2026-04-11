@@ -1,5 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Login from "./views/Login";
+import Home from "./views/Home";
+import CatalogoMaterias from "./views/CatalogosMaterias";
 
 function App() {
   return (
@@ -8,9 +10,10 @@ function App() {
 
         {/* 🔐 Login */}
         <Route path="/" element={<Login />} />
-
-        {/* 🔁 Redirección por si entran a otra ruta */}
+        <Route path="/home/:id" element={<Home />} />
+        <Route path="/materias" element={<CatalogoMaterias />} />
         <Route path="*" element={<Navigate to="/" />} />
+
 
       </Routes>
     </BrowserRouter>
