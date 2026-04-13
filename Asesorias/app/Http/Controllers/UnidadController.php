@@ -65,4 +65,7 @@ class UnidadController extends Controller
             'success' => true
         ]);
     }
+    public function indexPorMateria($materiaId) {
+    return Unidad::where('id_materia', $materiaId)->orderBy('numero_unidad', 'asc')->get();
+}
 }

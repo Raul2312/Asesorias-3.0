@@ -38,6 +38,24 @@ Route::get('/ejercicios/{id}', [EjercicioController::class, 'show']);
 Route::get('/materias/{materia}/imagenes', [ImagenMateriaController::class, 'index']);
 
 
+
+Route::get('/descripcion-materia/{id_materia}', [DescripcionMateriaController::class, 'show']);
+
+// Para guardar la descripción (POST)
+Route::post('/descripcion-materia', [DescripcionMateriaController::class, 'store']);
+
+// Para las UNIDADES
+// Ruta para OBTENER las unidades de una materia (GET)
+Route::get('/unidades/materia/{materiaId}', [UnidadController::class, 'indexPorMateria']);
+
+
+Route::put('/unidades/{id}', [UnidadController::class, 'update']);
+Route::delete('/unidades/{id}', [UnidadController::class, 'destroy']);
+
+// Ruta para CREAR una unidad (POST) - Esta es la que usas en el Modal
+Route::post('/unidades/{materiaId}', [UnidadController::class, 'store']);
+
+Route::get('/unidades/materia/{materiaId}', [UnidadController::class, 'indexPorMateria']);
 /*
 |--------------------------------------------------------------------------
 | 🔐 RUTAS PROTEGIDAS (JWT)

@@ -1,43 +1,86 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useParams, useLocation } from 'react-router-dom';
+import axios from 'axios';
+import { Pencil, Check, X as CloseIcon, BookOpen } from 'lucide-react'; 
 import '../css/home.css';
 
 interface Course {
   id: number;
-  name: string;
-  desc: string;
-  hours: number;
-  level: 'Básico' | 'Intermedio' | 'Avanzado';
-  icon: string;
-  gradient: string;
+  nombre: string;
+  titulo: string;
+  numero_unidad: number;
 }
 
 export default function Home() {
-  const [courses, setCourses] = useState<Course[]>([
-    { id: 1, name: 'HTML5 y CSS3 Moderno', desc: 'Aprende a construir sitios web semánticos y responsivos...', hours: 40, level: 'Básico', icon: 'code-2', gradient: 'linear-gradient(135deg, #7B1FA2, #E040FB)' },
-    { id: 2, name: 'JavaScript ES6+', desc: 'Domina el lenguaje de la web con funciones avanzadas...', hours: 60, level: 'Intermedio', icon: 'terminal', gradient: 'linear-gradient(135deg, #4A148C, #7B1FA2)' },
-    { id: 3, name: 'React.js Fundamentos', desc: 'Construye interfaces de usuario dinámicas...', hours: 50, level: 'Intermedio', icon: 'atom', gradient: 'linear-gradient(135deg, #9C27B0, #CE93D8)' },
-    { id: 4, name: 'Node.js y Express', desc: 'Desarrolla APIs RESTful robustas y escalables...', hours: 55, level: 'Avanzado', icon: 'server', gradient: 'linear-gradient(135deg, #4A148C, #9C27B0)' },
-    { id: 5, name: 'Bases de Datos SQL', desc: 'Diseña y gestiona bases de datos relacionales...', hours: 45, level: 'Básico', icon: 'database', gradient: 'linear-gradient(135deg, #7B1FA2, #4A148C)' },
-    { id: 6, name: 'Git y DevOps', desc: 'Control de versiones, CI/CD, contenedores Docker...', hours: 35, level: 'Intermedio', icon: 'git-branch', gradient: 'linear-gradient(135deg, #9C27B0, #E040FB)' }
-  ]);
+  const { id } = useParams(); 
+  const location = useLocation();
+  const nombreMateria = location.state?.nombreMateria || "Detalles de Materia";
 
-  const [activeTab, setActiveTab] = useState('cursos');
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [activeTab, setActiveTab] = useState('Unidades ');
   const [showModal, setShowModal] = useState(false);
-  const [formData, setFormData] = useState({ name: '', desc: '', hours: 40, level: 'Básico' });
+  
+  const [formData, setFormData] = useState({ 
+    nombre: '', 
+    titulo: '', 
+    numero_unidad: 1 
+  });
 
-  const handleAddCourse = (e: React.FormEvent) => {
+  const [descripcion, setDescripcion] = useState<string>('Cargando descripción...');
+  const [isEditingDesc, setIsEditingDesc] = useState(false);
+  const [editDescValue, setEditDescValue] = useState('');
+
+  const userNivel = localStorage.getItem("user_nivel") || "alumno"; 
+  const token = localStorage.getItem("token");
+
+  const fetchData = async () => {
+    try {
+      const resDesc = await axios.get(`http://127.0.0.1:8000/api/descripcion-materia/${id}`);
+      if (resDesc.data.success) {
+        setDescripcion(resDesc.data.data.descripcion);
+        setEditDescValue(resDesc.data.data.descripcion);
+      }
+
+      const resUnidades = await axios.get(`http://127.0.0.1:8000/api/unidades/materia/${id}`);
+      const unidadesData = resUnidades.data.success ? resUnidades.data.data : resUnidades.data;
+      setCourses(Array.isArray(unidadesData) ? unidadesData : []);
+    } catch (error) {
+      console.error("Error cargando datos:", error);
+      setDescripcion("Materia sin descripción técnica.");
+    }
+  };
+
+  useEffect(() => { fetchData(); }, [id]);
+
+  const handleAddCourse = async (e: React.FormEvent) => {
     e.preventDefault();
-    setCourses([...courses, {
-  id: courses.length + 1,
-  name: formData.name,
-  desc: formData.desc,
-  hours: formData.hours,
-  level: formData.level as 'Básico' | 'Intermedio' | 'Avanzado',
-  icon: ['book-open', 'cpu', 'monitor'][Math.floor(Math.random() * 3)],
-  gradient: ['linear-gradient(135deg, #7B1FA2, #E040FB)', 'linear-gradient(135deg, #4A148C, #7B1FA2)'][Math.floor(Math.random() * 2)]
-}]);
-    setShowModal(false);
-    setFormData({ name: '', desc: '', hours: 40, level: 'Básico' });
+    try {
+      const response = await axios.post(`http://127.0.0.1:8000/api/unidades/${id}`, formData, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (response.data.success) {
+        setCourses([...courses, response.data.data]);
+        setShowModal(false);
+        setFormData({ nombre: '', titulo: '', numero_unidad: courses.length + 2 });
+      }
+    } catch (error) {
+      alert("Error al guardar la unidad");
+    }
+  };
+
+  const saveDescription = async () => {
+    try {
+      await axios.post('http://127.0.0.1:8000/api/descripcion-materia', {
+        id_materia: id,
+        descripcion: editDescValue
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setDescripcion(editDescValue);
+      setIsEditingDesc(false);
+    } catch (error) {
+      alert("Error al actualizar la descripción");
+    }
   };
 
   return (
@@ -48,16 +91,37 @@ export default function Home() {
             <div className="header-content">
               <div className="header-badge">
                 <div className="header-badge-icon">📚</div>
-                <span className="header-badge-text">Tecnológico</span>
+                <span className="header-badge-text">ID: {id}</span>
               </div>
-              <h1 className="subject-name">Desarrollo Web</h1>
-              <p className="page-subtitle">Cursos disponibles para esta materia</p>
+              <h1 className="subject-name">{nombreMateria}</h1>
+              
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '10px' }}>
+                {isEditingDesc ? (
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <input 
+                      className="form-input" 
+                      style={{ margin: 0, padding: '5px 12px', background: 'white', color: 'black', width: '300px' }} 
+                      value={editDescValue} 
+                      onChange={(e) => setEditDescValue(e.target.value)}
+                    />
+                    <button onClick={saveDescription} style={{ background: '#22c55e', border: 'none', borderRadius: '8px', padding: '5px 10px', color: 'white', cursor: 'pointer' }}><Check size={16}/></button>
+                    <button onClick={() => setIsEditingDesc(false)} style={{ background: '#ef4444', border: 'none', borderRadius: '8px', padding: '5px 10px', color: 'white', cursor: 'pointer' }}><CloseIcon size={16}/></button>
+                  </div>
+                ) : (
+                  <>
+                    <p className="page-subtitle" style={{ margin: 0 }}>{descripcion}</p>
+                    {userNivel === "docente" && <Pencil size={14} style={{ cursor: 'pointer', color: 'white', opacity: 0.7 }} onClick={() => setIsEditingDesc(true)} />}
+                  </>
+                )}
+              </div>
             </div>
-            <button className="btn-add" onClick={() => setShowModal(true)}>+ Agregar Curso</button>
+            {userNivel === "docente" && (
+              <button className="btn-add" onClick={() => setShowModal(true)}>+ Agregar Unidad</button>
+            )}
           </div>
           <div className="stats-bar">
-            <div className="stat-item">📊 {courses.length} cursos</div>
-            <div className="stat-item">📅 Semestre 2025-A</div>
+            <div className="stat-item">📊 {courses.length} Unidades registradas</div>
+            <div className="stat-item">📅 Ciclo Escolar 2026</div>
           </div>
         </div>
         <svg viewBox="0 0 1440 60" className="wave-divider">
@@ -67,12 +131,8 @@ export default function Home() {
 
       <div className="tabs-container">
         <div className="tabs-wrapper">
-          {['cursos', 'ejercicios', 'proyectos', 'recursos'].map(tab => (
-            <button
-              key={tab}
-              className={`tab-btn ${activeTab === tab ? 'active' : ''}`}
-              onClick={() => setActiveTab(tab)}
-            >
+          {['Unidades ', 'ejercicios', 'proyectos', 'recursos'].map(tab => (
+            <button key={tab} className={`tab-btn ${activeTab === tab ? 'active' : ''}`} onClick={() => setActiveTab(tab)}>
               {tab.charAt(0).toUpperCase() + tab.slice(1)}
             </button>
           ))}
@@ -80,57 +140,143 @@ export default function Home() {
       </div>
 
       <main>
-        {activeTab === 'cursos' && (
+        {activeTab === 'Unidades ' && (
           <div className="courses-grid">
-            {courses.map((course, i) => (
-              <div key={course.id} className="course-card" style={{ animationDelay: `${i * 0.08}s` }}>
-                <div className="course-img" style={{ background: course.gradient }}>
-                  <span>{course.icon}</span>
-                </div>
-                <div className="course-content">
-                  <div className="course-header">
-                    <span className="course-level">{course.level}</span>
-                    <span className="course-hours">⏱️ {course.hours}h</span>
+            {courses.length > 0 ? (
+              courses.map((course, i) => (
+                <div key={course.id} className="course-card" style={{ animationDelay: `${i * 0.08}s` }}>
+                  <div className="course-img" style={{ background: 'linear-gradient(135deg, #1e1e4a, #3b3b8c)' }}>
+                    <span><BookOpen size={32} color="white" /></span>
                   </div>
-                  <h3 className="course-title">{course.name}</h3>
-                  <p className="course-desc">{course.desc}</p>
-                  <button className="course-link">Ver detalles →</button>
+                  <div className="course-content">
+                    <div className="course-header">
+                      <span className="course-level">Unidad {course.numero_unidad}</span>
+                    </div>
+                    <h3 className="course-title">{course.nombre}</h3>
+                    <p className="course-desc">{course.titulo || 'Sin descripción adicional'}</p>
+                    <button className="course-link">Explorar Unidad →</button>
+                  </div>
                 </div>
+              ))
+            ) : (
+              <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '40px', color: '#666' }}>
+                No hay unidades registradas para esta materia.
               </div>
-            ))}
+            )}
           </div>
         )}
-
-        {activeTab === 'ejercicios' && <EmptyState icon="✏️" title="Ejercicios Prácticos" />}
-        {activeTab === 'proyectos' && <EmptyState icon="📁" title="Proyectos" />}
-        {activeTab === 'recursos' && <EmptyState icon="⬇️" title="Recursos de Apoyo" />}
+        {activeTab !== 'Unidades ' && <EmptyState icon="✏️" title={activeTab} />}
       </main>
 
+      {/* --- MODAL DISEÑO "NUEVA ASIGNATURA" --- */}
       {showModal && (
-        <div className="modal-overlay" onClick={() => setShowModal(false)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2>Nuevo Curso</h2>
-              <button className="modal-close" onClick={() => setShowModal(false)}>✕</button>
-            </div>
+        <div className="modal-overlay" style={{ backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }} onClick={() => setShowModal(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ 
+            background: 'white', 
+            borderRadius: '24px', 
+            padding: '40px', 
+            width: '100%', 
+            maxWidth: '550px',
+            boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)',
+            position: 'relative'
+          }}>
+            {/* Botón Cerrar */}
+            <button 
+              onClick={() => setShowModal(false)} 
+              style={{ position: 'absolute', top: '24px', right: '24px', border: 'none', background: 'none', cursor: 'pointer', color: '#1e1e4a' }}
+            >
+              <CloseIcon size={24} />
+            </button>
+
+            <h2 style={{ color: '#1e1e4a', fontSize: '28px', fontWeight: '800', marginBottom: '32px', marginTop: 0 }}>
+              Nueva Unidad
+            </h2>
+            
             <form onSubmit={handleAddCourse}>
-              <div className="form-group">
-                <label>Nombre del curso</label>
-                <input required placeholder="Ej: React Avanzado" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+              {/* Nombre de la unidad */}
+              <div style={{ marginBottom: '24px' }}>
+                <label style={{ color: '#1e1e4a', display: 'block', marginBottom: '12px', fontWeight: '700', textAlign: 'center' }}>
+                  Nombre de la unidad
+                </label>
+                <input 
+                  required 
+                  placeholder="Ej. Estructura de Datos"
+                  className="form-input" 
+                  style={{ 
+                    background: 'white', 
+                    border: '1px solid #d1d5db', 
+                    color: '#374151', 
+                    width: '100%', 
+                    borderRadius: '12px',
+                    padding: '14px 20px',
+                    fontSize: '16px'
+                  }}
+                  value={formData.nombre} 
+                  onChange={e => setFormData({...formData, nombre: e.target.value})} 
+                />
               </div>
-              <div className="form-group">
-                <label>Descripción</label>
-                <textarea required rows={3} placeholder="Breve descripción..." value={formData.desc} onChange={e => setFormData({...formData, desc: e.target.value})} />
+
+              {/* Título y Número en la misma fila */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '32px' }}>
+                <div>
+                  <label style={{ color: '#1e1e4a', display: 'block', marginBottom: '12px', fontWeight: '700', textAlign: 'center' }}>
+                    Descripción corta
+                  </label>
+                  <input 
+                    placeholder="Ej. Conceptos básicos"
+                    className="form-input" 
+                    style={{ 
+                      background: 'white', 
+                      border: '1px solid #d1d5db', 
+                      color: '#374151', 
+                      width: '100%', 
+                      borderRadius: '12px',
+                      padding: '14px 20px'
+                    }}
+                    value={formData.titulo} 
+                    onChange={e => setFormData({...formData, titulo: e.target.value})} 
+                  />
+                </div>
+                <div>
+                  <label style={{ color: '#1e1e4a', display: 'block', marginBottom: '12px', fontWeight: '700', textAlign: 'center' }}>
+                    Nº Unidad
+                  </label>
+                  <input 
+                    type="number"
+                    required 
+                    className="form-input" 
+                    style={{ 
+                      background: 'white', 
+                      border: '1px solid #d1d5db', 
+                      color: '#374151', 
+                      width: '100%', 
+                      borderRadius: '12px',
+                      padding: '14px 20px'
+                    }}
+                    value={formData.numero_unidad} 
+                    onChange={e => setFormData({...formData, numero_unidad: parseInt(e.target.value) || 1})} 
+                  />
+                </div>
               </div>
-              <div className="form-group two-col">
-                <input type="number" min="1" value={formData.hours} onChange={e => setFormData({...formData, hours: parseInt(e.target.value)})} />
-                <select value={formData.level} onChange={e => setFormData({...formData, level: e.target.value as any})}>
-                  <option>Básico</option>
-                  <option>Intermedio</option>
-                  <option>Avanzado</option>
-                </select>
-              </div>
-              <button type="submit" className="form-submit">Agregar Curso</button>
+
+              {/* Botón Registrar */}
+              <button type="submit" style={{ 
+                background: '#1e1e4a', 
+                color: 'white', 
+                border: 'none', 
+                padding: '16px', 
+                borderRadius: '16px', 
+                cursor: 'pointer', 
+                width: '100%', 
+                fontWeight: '700',
+                fontSize: '18px',
+                transition: 'transform 0.2s'
+              }}
+              onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.98)'}
+              onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
+              >
+                Registrar Unidad
+              </button>
             </form>
           </div>
         </div>
@@ -140,9 +286,9 @@ export default function Home() {
 }
 
 function EmptyState({ icon, title }: { icon: string; title: string }) {
-  return <div style={{ textAlign: 'center', padding: '60px 24px' }}>
-    <div style={{ fontSize: '48px', marginBottom: '16px' }}>{icon}</div>
-    <h2 style={{ fontSize: '24px', color: '#4A148C', marginBottom: '8px' }}>{title}</h2>
-    <p style={{ color: '#999' }}>Contenido próximamente...</p>
+  return <div style={{ textAlign: 'center', padding: '80px 24px' }}>
+    <div style={{ fontSize: '50px', marginBottom: '15px' }}>{icon}</div>
+    <h2 style={{ color: '#1e1e4a', marginBottom: '10px' }}>{title}</h2>
+    <p style={{ color: '#666' }}>El material para esta sección aún no ha sido cargado.</p>
   </div>;
 }

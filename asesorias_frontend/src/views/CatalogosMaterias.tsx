@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 import { 
   Code2, Database, Globe, Sigma, Grid3X3, BarChart3, 
-  Network, Server, Zap, Cpu, Briefcase, Atom, GraduationCap,
-  Plus, Edit3, Trash2, X,
-  type LucideIcon 
+  Network, Server, Zap, Cpu, Briefcase, Atom,
+  Plus, X, Search, Layers, Pencil, Trash2 
 } from 'lucide-react';
 
-// --- INTERFACES ---
+// --- TIPOS ---
 type CategoryType = 'programacion' | 'matematicas' | 'redes' | 'electronica' | 'gestion' | 'ciencias';
 
 interface Materia {
@@ -16,27 +16,29 @@ interface Materia {
   codigo_materia: string;
   cat: CategoryType;
   sem: number;
-  credits: number;
   iconName: string;
-  user_id: number;
+  id_users: number;
 }
 
-const catColors: Record<CategoryType, { bg: string; text: string }> = {
-  programacion: { bg: "#F3E8FF", text: "#7C3AED" },
-  matematicas:  { bg: "#FEF9C3", text: "#A16207" },
-  redes:         { bg: "#E0E7FF", text: "#4338CA" },
-  electronica:  { bg: "#DCFCE7", text: "#15803D" },
-  gestion:      { bg: "#FFE4E6", text: "#BE123C" },
-  ciencias:     { bg: "#E0F2FE", text: "#0369A1" },
+const catColors: Record<CategoryType, { bg: string; text: string; light: string }> = {
+  programacion: { bg: "#7C3AED", text: "#7C3AED", light: "#F3E8FF" },
+  matematicas:  { bg: "#EAB308", text: "#A16207", light: "#FEF9C3" },
+  redes:         { bg: "#4338CA", text: "#4338CA", light: "#E0E7FF" },
+  electronica:  { bg: "#15803D", text: "#15803D", light: "#DCFCE7" },
+  gestion:      { bg: "#BE123C", text: "#BE123C", light: "#FFE4E6" },
+  ciencias:     { bg: "#0369A1", text: "#0369A1", light: "#E0F2FE" },
 };
 
 const catLabels: Record<CategoryType, string> = { 
-  programacion: "Programación", matematicas: "Matemáticas", 
-  redes: "Redes", electronica: "Electrónica", 
-  gestion: "Gestión", ciencias: "Ciencias" 
+  programacion: "Programación", 
+  matematicas: "Matemáticas", 
+  redes: "Redes", 
+  electronica: "Electrónica", 
+  gestion: "Gestión", 
+  ciencias: "Ciencias" 
 };
 
-const iconMap: Record<string, LucideIcon> = {
+const iconMap: Record<string, any> = {
   'code-2': Code2, 'database': Database, 'globe': Globe, 'sigma': Sigma,
   'grid-3x3': Grid3X3, 'bar-chart-3': BarChart3, 'network': Network,
   'server': Server, 'zap': Zap, 'cpu': Cpu, 'briefcase': Briefcase, 'atom': Atom
@@ -45,39 +47,32 @@ const iconMap: Record<string, LucideIcon> = {
 const CatalogoMaterias: React.FC = () => {
   const [materias, setMaterias] = useState<Materia[]>([]);
   const [filtro, setFiltro] = useState<CategoryType | 'all'>('all');
+  const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState<boolean>(true);
   
-  // --- ESTADOS PARA EL MODAL Y FORMULARIO ---
+  // Modal y Formulario
   const [showModal, setShowModal] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [currentId, setCurrentId] = useState<number | null>(null);
   const [formData, setFormData] = useState({
     nombre: '',
-    codigo_materia: '',
+    codigo_materia: '', 
     cat: 'programacion' as CategoryType,
     sem: 1,
-    credits: 5,
     iconName: 'code-2'
   });
-  
+
+  const navigate = useNavigate();
   const userNivel = localStorage.getItem("user_nivel") || "alumno"; 
-  const currentUserId = Number(localStorage.getItem("user_id"));
+  const userStorageId = Number(localStorage.getItem("user_id"));
 
   const fetchData = async () => {
     try {
       setLoading(true);
       const response = await axios.get('http://127.0.0.1:8000/api/materias');
-      
-      const materiasFormateadas = response.data.data.map((m: any) => ({
-        ...m,
-        cat: m.cat || 'programacion',
-        sem: m.sem || 1,
-        credits: m.credits || 5,
-        iconName: m.iconName || 'database',
-        user_id: m.user_id 
-      }));
-
-      setMaterias(materiasFormateadas);
+      setMaterias(response.data.data);
     } catch (error) {
-      console.error("Error al conectar con la base de datos", error);
+      console.error("Error al cargar materias", error);
     } finally {
       setLoading(false);
     }
@@ -87,27 +82,67 @@ const CatalogoMaterias: React.FC = () => {
     fetchData();
   }, []);
 
-  // --- FUNCIÓN PARA GUARDAR LA NUEVA MATERIA ---
+  // Abrir modal para crear
+  const handleCreateNew = () => {
+    setIsEditing(false);
+    setFormData({ nombre: '', codigo_materia: '', cat: 'programacion', sem: 1, iconName: 'code-2' });
+    setShowModal(true);
+  };
+
+  // Abrir modal para editar
+  const handleEdit = (e: React.MouseEvent, materia: Materia) => {
+    e.stopPropagation();
+    setIsEditing(true);
+    setCurrentId(materia.id);
+    setFormData({
+      nombre: materia.nombre,
+      codigo_materia: materia.codigo_materia,
+      cat: materia.cat,
+      sem: materia.sem,
+      iconName: materia.iconName
+    });
+    setShowModal(true);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       const token = localStorage.getItem("token");
-      await axios.post('http://127.0.0.1:8000/api/materias', {
-        ...formData,
-        user_id: currentUserId // Mandamos quién la está creando
-      }, {
-        headers: { Authorization: `Bearer ${token}` } // Necesario si tu ruta en Laravel está protegida
-      });
+      const dataToSend = { ...formData, id_users: userStorageId, estatus: 1 };
+
+      if (isEditing && currentId) {
+        await axios.put(`http://127.0.0.1:8000/api/materias/${currentId}`, dataToSend, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        alert("¡Materia actualizada!");
+      } else {
+        await axios.post('http://127.0.0.1:8000/api/materias', dataToSend, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        alert("¡Materia registrada!");
+      }
       
-      alert("Materia agregada correctamente");
-      setShowModal(false); // Cerramos el modal
-      fetchData(); // Recargamos la lista de materias para que aparezca la nueva
-      
-      // Limpiamos el formulario
-      setFormData({ nombre: '', codigo_materia: '', cat: 'programacion', sem: 1, credits: 5, iconName: 'code-2' });
-    } catch (error) {
-      console.error("Error guardando la materia", error);
-      alert("Hubo un error al guardar la materia");
+      setShowModal(false);
+      fetchData();
+    } catch (error: any) {
+      alert("Error en la operación: " + (error.response?.data?.message || "Error desconocido"));
+    }
+  };
+
+  const handleDelete = async (e: React.MouseEvent, id: number) => {
+    e.stopPropagation();
+    if (window.confirm("¿Estás seguro de que quieres eliminar esta materia?")) {
+      try {
+        const token = localStorage.getItem("token");
+        await axios.delete(`http://127.0.0.1:8000/api/materias/${id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+          data: { id_users: userStorageId }
+        });
+        alert("Materia eliminada");
+        fetchData();
+      } catch (error) {
+        alert("No tienes permiso o hubo un error");
+      }
     }
   };
 
@@ -115,339 +150,153 @@ const CatalogoMaterias: React.FC = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const materiasFiltradas = filtro === 'all' ? materias : materias.filter(m => m.cat === filtro);
+  const materiasFiltradas = materias.filter(m => {
+    const cumpleFiltro = filtro === 'all' || m.cat === filtro;
+    const cumpleSearch = m.nombre.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                         m.codigo_materia.toLowerCase().includes(searchTerm.toLowerCase());
+    return cumpleFiltro && cumpleSearch;
+  });
 
   return (
-    <>
+    <div className="catalogo-wrapper">
       <style>{`
-        .catalogo-container {
-          font-family: 'Inter', sans-serif;
-          background: #f8f9ff;
-          min-height: 100vh;
-          padding: 40px 20px;
-        }
-        .header-section {
-          text-align: center;
-          margin-bottom: 40px;
-        }
-        .header-section h1 {
-          font-size: 32px;
-          font-weight: 800;
-          color: #1E1B2E;
-        }
-        .filter-bar {
-          display: flex;
-          justify-content: center;
-          gap: 12px;
-          flex-wrap: wrap;
-          margin-bottom: 40px;
-          background: white;
-          padding: 20px;
-          border-radius: 20px;
-          box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-        }
-        .btn-filter {
-          padding: 10px 20px;
-          border-radius: 50px;
-          border: none;
-          cursor: pointer;
-          font-weight: 600;
-          background: #f1f1f1;
-          color: #666;
-          transition: 0.3s;
-        }
-        .btn-filter.active {
-          background: #7C3AED;
-          color: white;
-          box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
-        }
-        .grid-materias {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-          gap: 25px;
-          max-width: 1200px;
-          margin: 0 auto;
-        }
-        .card-materia {
-          background: white;
-          border-radius: 20px;
-          overflow: hidden;
-          box-shadow: 0 10px 20px rgba(0,0,0,0.05);
-          transition: 0.3s;
-          border: 1px solid #eee;
-          position: relative;
-        }
-        .card-materia:hover { transform: translateY(-10px); }
-        .card-top {
-          height: 140px;
-          background: #7C3AED;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: white;
-        }
+        .catalogo-wrapper { font-family: 'Inter', sans-serif; background: #f0f2f9; min-height: 100vh; color: #1a1c2e; }
+        .top-banner { background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%); padding: 60px 20px; text-align: center; color: white; }
+        .top-banner h1 { font-size: 38px; font-weight: 800; margin-bottom: 10px; }
+        .container-main { max-width: 1200px; margin: -30px auto 0; padding: 0 20px 60px; }
+        .tools-card { background: white; border-radius: 20px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); margin-bottom: 30px; }
+        .search-box { position: relative; flex: 1; margin-bottom: 20px; }
+        .search-box input { width: 100%; padding: 15px 45px; border-radius: 12px; border: 1px solid #e2e8f0; outline: none; background: white; color: black; }
+        .search-icon { position: absolute; left: 15px; top: 15px; color: #94a3b8; }
+        .filters-row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+        .btn-filter { padding: 8px 18px; border-radius: 10px; border: none; background: #f1f5f9; color: #64748b; font-weight: 600; cursor: pointer; transition: 0.2s; }
+        .btn-filter.active { background: #7C3AED; color: white; }
+        .grid-layout { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 25px; }
+        .card-materia { background: white; border-radius: 20px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.03); border: 1px solid #eef2f6; position: relative; transition: 0.3s; cursor: pointer; }
+        .card-materia:hover { transform: translateY(-5px); box-shadow: 0 12px 25px rgba(0,0,0,0.08); }
+        .card-visual { height: 120px; display: flex; align-items: center; justify-content: center; color: white; }
         .card-body { padding: 20px; }
-        .tag-cat {
-          font-size: 10px;
-          font-weight: 800;
-          text-transform: uppercase;
-          padding: 4px 10px;
-          border-radius: 6px;
-        }
-        .materia-title {
-          font-size: 18px;
-          font-weight: 700;
-          margin: 15px 0;
-          color: #1E1B2E;
-        }
-        .card-footer {
-          display: flex;
-          justify-content: space-between;
-          border-top: 1px solid #f5f5f5;
-          padding-top: 15px;
-          color: #999;
-          font-size: 13px;
-        }
-        .creditos-badge {
-          background: #7C3AED;
-          color: white;
-          width: 30px;
-          height: 30px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          border-radius: 8px;
-          font-weight: bold;
-        }
-        .btn-add-materia {
-          background: #FACC15;
-          color: #000;
-          padding: 12px 24px;
-          border-radius: 15px;
-          border: none;
-          font-weight: 800;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          margin: 0 auto 30px auto;
-          transition: 0.3s;
-        }
-        .btn-add-materia:hover { transform: scale(1.05); background: #eab308; }
-        
-        .admin-icons {
-          position: absolute;
-          top: 10px;
-          right: 10px;
-          display: flex;
-          gap: 8px;
-          z-index: 5;
-        }
-        .icon-btn {
-          background: rgba(255, 255, 255, 0.2);
-          border: none;
-          padding: 6px;
-          border-radius: 8px;
-          color: white;
-          cursor: pointer;
-          transition: 0.2s;
-        }
-        .icon-btn:hover:not(:disabled) { background: rgba(255, 255, 255, 0.4); }
-        .icon-btn:disabled {
-          opacity: 0.3;
-          cursor: not-allowed;
-        }
-
-        /* --- ESTILOS DEL MODAL --- */
-        .modal-overlay {
-          position: fixed;
-          top: 0; left: 0; right: 0; bottom: 0;
-          background: rgba(0,0,0,0.6);
-          backdrop-filter: blur(5px);
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          z-index: 1000;
-        }
-        .modal-content {
-          background: white;
-          border-radius: 20px;
-          padding: 30px;
-          width: 100%;
-          max-width: 500px;
-          box-shadow: 0 25px 50px rgba(0,0,0,0.2);
-          position: relative;
-        }
-        .modal-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 20px;
-          border-bottom: 1px solid #eee;
-          padding-bottom: 15px;
-        }
-        .modal-header h2 { margin: 0; font-size: 20px; color: #1E1B2E; }
-        .close-btn { background: none; border: none; cursor: pointer; color: #999; }
-        .close-btn:hover { color: #ef4444; }
-        
-        .form-group { margin-bottom: 15px; }
-        .form-group label { display: block; margin-bottom: 5px; font-size: 14px; font-weight: 600; color: #334155; }
-        .form-input {
-          width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 10px;
-          font-family: inherit; font-size: 14px; outline: none; transition: 0.2s;
-        }
-        .form-input:focus { border-color: #7C3AED; box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1); }
-        
-        .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 25px; }
-        .btn-cancel { padding: 10px 20px; border-radius: 10px; border: none; background: #f1f5f9; color: #64748b; font-weight: 600; cursor: pointer; }
-        .btn-cancel:hover { background: #e2e8f0; }
-        .btn-save { padding: 10px 20px; border-radius: 10px; border: none; background: #7C3AED; color: white; font-weight: 600; cursor: pointer; }
-        .btn-save:hover { background: #6D28D9; }
+        .materia-title { font-size: 19px; font-weight: 700; color: #1e293b; margin: 12px 0; }
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); z-index: 1000; display: flex; align-items: center; justify-content: center; }
+        .modal-content { background: white; width: 95%; max-width: 500px; border-radius: 24px; padding: 30px; animation: scaleIn 0.3s ease; }
+        @keyframes scaleIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+        .form-input { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #cbd5e1; margin-top: 5px; outline: none; background: white; color: black; }
+        .btn-primary { background: #1e1b4b; color: white; padding: 14px 28px; border-radius: 12px; border: none; font-weight: 700; cursor: pointer; width: 100%; margin-top: 20px; }
+        .card-actions { display: flex; gap: 8px; margin-top: 15px; border-top: 1px solid #f1f5f9; padding-top: 15px; }
+        .btn-action { flex: 1; display: flex; align-items: center; justify-content: center; gap: 5px; padding: 8px; border-radius: 8px; font-size: 11px; font-weight: 700; border: none; cursor: pointer; transition: 0.2s; }
+        .btn-edit { background: #eef2ff; color: #4338ca; }
+        .btn-delete { background: #fee2e2; color: #b91c1c; }
+        .btn-action:disabled { opacity: 0.4; cursor: not-allowed; filter: grayscale(1); }
       `}</style>
 
-      {/* --- MODAL PARA AGREGAR MATERIA --- */}
+      <div className="top-banner"><h1>Catálogo Académico</h1></div>
+      <div className="container-main">
+        <div className="tools-card">
+          <div className="search-box">
+            <Search className="search-icon" size={20} />
+            <input type="text" placeholder="Buscar materia..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+          </div>
+          <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '20px'}}>
+            <div className="filters-row">
+              <button className={`btn-filter ${filtro === 'all' ? 'active' : ''}`} onClick={() => setFiltro('all')}>Todas</button>
+              {(Object.keys(catLabels) as CategoryType[]).map(cat => (
+                <button key={cat} className={`btn-filter ${filtro === cat ? 'active' : ''}`} onClick={() => setFiltro(cat)}>{catLabels[cat]}</button>
+              ))}
+            </div>
+            {userNivel === "docente" && (
+              <button className="btn-filter active" style={{background: '#FACC15', color: '#000'}} onClick={handleCreateNew}>
+                <Plus size={18} /> Nueva Materia
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="grid-layout">
+          {materiasFiltradas.map(m => {
+            const Icon = iconMap[m.iconName] || Code2;
+            const theme = catColors[m.cat] || catColors.programacion;
+            const isOwner = userNivel === "docente" && userStorageId === m.id_users;
+
+            return (
+              <div key={m.id} className="card-materia" onClick={() => navigate(`/materia/${m.id}`, { state: { nombreMateria: m.nombre } })}>
+                <div className="card-visual" style={{background: theme.bg}}><Icon size={45} /></div>
+                <div className="card-body">
+                  <span style={{fontSize: '11px', fontWeight: 800, color: theme.text, background: theme.light, padding: '4px 10px', borderRadius: '6px'}}>{m.codigo_materia}</span>
+                  <h3 className="materia-title">{m.nombre}</h3>
+                  <span style={{fontSize: '13px', color: '#64748b'}}><Layers size={14}/> Semestre {m.sem}</span>
+
+                  {userNivel === "docente" && (
+                    <div className="card-actions">
+                      <button className="btn-action btn-edit" disabled={!isOwner} onClick={(e) => handleEdit(e, m)}>
+                        <Pencil size={12} /> Editar
+                      </button>
+                      <button className="btn-action btn-delete" disabled={!isOwner} onClick={(e) => handleDelete(e, m.id)}>
+                        <Trash2 size={12} /> Borrar
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
       {showModal && (
         <div className="modal-overlay">
           <div className="modal-content">
-            <div className="modal-header">
-              <h2>Registrar Nueva Materia</h2>
-              <button className="close-btn" onClick={() => setShowModal(false)}><X size={24} /></button>
+            <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '20px'}}>
+              <h2 style={{fontWeight: 800, color: '#1e1b4b'}}>{isEditing ? 'Editar Asignatura' : 'Nueva Asignatura'}</h2>
+              <X onClick={() => setShowModal(false)} style={{cursor: 'pointer', color: '#1e1b4b'}} />
             </div>
-            
             <form onSubmit={handleSubmit}>
-              <div className="form-group">
-                <label>Nombre de la Materia</label>
-                <input required type="text" name="nombre" value={formData.nombre} onChange={handleInputChange} className="form-input" placeholder="Ej. Programación Orientada a Objetos" />
+              <div style={{marginBottom: '15px'}}>
+                <label style={{fontSize: '13px', fontWeight: 600, color: '#1e1b4b'}}>Nombre de la materia</label>
+                <input required name="nombre" value={formData.nombre} onChange={handleInputChange} className="form-input" placeholder="Ej. Estructura de Datos" />
               </div>
               
-              <div style={{display: 'flex', gap: '15px'}}>
-                <div className="form-group" style={{flex: 1}}>
-                  <label>Código</label>
-                  <input required type="text" name="codigo_materia" value={formData.codigo_materia} onChange={handleInputChange} className="form-input" placeholder="Ej. POO-101" />
+              <div style={{display: 'flex', gap: '15px', marginBottom: '15px'}}>
+                <div style={{flex: 1}}>
+                  <label style={{fontSize: '13px', fontWeight: 600, color: '#1e1b4b'}}>Código</label>
+                  <input required name="codigo_materia" value={formData.codigo_materia} onChange={handleInputChange} className="form-input" placeholder="ED-101" />
                 </div>
-                <div className="form-group" style={{flex: 1}}>
-                  <label>Categoría</label>
+                <div style={{flex: 1}}>
+                  <label style={{fontSize: '13px', fontWeight: 600, color: '#1e1b4b'}}>Semestre</label>
+                  <input type="number" name="sem" min="1" value={formData.sem} onChange={handleInputChange} className="form-input" />
+                </div>
+              </div>
+
+              <div style={{display: 'flex', gap: '15px', marginBottom: '15px'}}>
+                <div style={{flex: 1}}>
+                  <label style={{fontSize: '13px', fontWeight: 600, color: '#1e1b4b'}}>Categoría</label>
                   <select name="cat" value={formData.cat} onChange={handleInputChange} className="form-input">
-                    {Object.keys(catLabels).map(key => (
-                      <option key={key} value={key}>{catLabels[key as CategoryType]}</option>
+                    {(Object.keys(catLabels) as CategoryType[]).map(k => (
+                      <option key={k} value={k}>{catLabels[k]}</option>
                     ))}
+                  </select>
+                </div>
+                <div style={{flex: 1}}>
+                  <label style={{fontSize: '13px', fontWeight: 600, color: '#1e1b4b'}}>Ícono</label>
+                  <select name="iconName" value={formData.iconName} onChange={handleInputChange} className="form-input">
+                    <option value="code-2">💻 Código</option>
+                    <option value="cpu">🔌 Hardware</option>
+                    <option value="database">🗄️ Datos</option>
+                    <option value="network">🌐 Redes</option>
+                    <option value="sigma">🧮 Matemáticas</option>
+                    <option value="zap">⚡ Energía</option>
+                    <option value="globe">🌍 Web</option>
                   </select>
                 </div>
               </div>
 
-              <div style={{display: 'flex', gap: '15px'}}>
-                <div className="form-group" style={{flex: 1}}>
-                  <label>Semestre</label>
-                  <input required type="number" min="1" max="10" name="sem" value={formData.sem} onChange={handleInputChange} className="form-input" />
-                </div>
-                <div className="form-group" style={{flex: 1}}>
-                  <label>Créditos</label>
-                  <input required type="number" min="1" max="10" name="credits" value={formData.credits} onChange={handleInputChange} className="form-input" />
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label>Ícono Representativo</label>
-                <select name="iconName" value={formData.iconName} onChange={handleInputChange} className="form-input">
-                  <option value="code-2">Código (Programación)</option>
-                  <option value="database">Base de Datos</option>
-                  <option value="network">Redes</option>
-                  <option value="cpu">Microprocesador / Hardware</option>
-                  <option value="sigma">Matemáticas (Sigma)</option>
-                  <option value="briefcase">Negocios / Gestión</option>
-                </select>
-              </div>
-
-              <div className="modal-actions">
-                <button type="button" className="btn-cancel" onClick={() => setShowModal(false)}>Cancelar</button>
-                <button type="submit" className="btn-save">Guardar Materia</button>
-              </div>
+              <button type="submit" className="btn-primary">
+                {isEditing ? 'Guardar Cambios' : 'Registrar Materia'}
+              </button>
             </form>
           </div>
         </div>
       )}
-
-      <div className="catalogo-container">
-        <div className="header-section">
-          <h1>Explorar Materias</h1>
-          <p>Catálogo de la Ingeniería en Sistemas</p>
-        </div>
-
-        {/* BOTÓN CON ACCIÓN PARA ABRIR MODAL */}
-        {userNivel === "docente" && (
-          <button className="btn-add-materia" onClick={() => setShowModal(true)}>
-            <Plus size={20} /> Nueva Materia
-          </button>
-        )}
-
-        <div className="filter-bar">
-          <button 
-            className={`btn-filter ${filtro === 'all' ? 'active' : ''}`}
-            onClick={() => setFiltro('all')}
-          >Todas</button>
-          {(Object.keys(catLabels) as CategoryType[]).map(cat => (
-            <button 
-              key={cat}
-              className={`btn-filter ${filtro === cat ? 'active' : ''}`}
-              onClick={() => setFiltro(cat)}
-            >
-              {catLabels[cat]}
-            </button>
-          ))}
-        </div>
-
-        {loading ? (
-          <p style={{textAlign: 'center'}}>Cargando desde la base de datos...</p>
-        ) : (
-          <div className="grid-materias">
-            {materiasFiltradas.map(m => {
-              const Icon = iconMap[m.iconName] || Code2;
-              const color = catColors[m.cat] || catColors.programacion;
-              
-              const esMateriaPropia = m.user_id === currentUserId;
-
-              return (
-                <div key={m.id} className="card-materia">
-                  {userNivel === "docente" && (
-                    <div className="admin-icons">
-                      <button 
-                        className="icon-btn" 
-                        disabled={!esMateriaPropia}
-                      >
-                        <Edit3 size={14}/>
-                      </button>
-                      <button 
-                        className="icon-btn" 
-                        style={{color: esMateriaPropia ? '#f87171' : 'white'}}
-                        disabled={!esMateriaPropia}
-                      >
-                        <Trash2 size={14}/>
-                      </button>
-                    </div>
-                  )}
-
-                  <div className="card-top">
-                    <Icon size={40} />
-                  </div>
-                  <div className="card-body">
-                    <span className="tag-cat" style={{background: color.bg, color: color.text}}>
-                      {m.codigo_materia}
-                    </span>
-                    <h3 className="materia-title">{m.nombre}</h3>
-                    <div className="card-footer">
-                      <span style={{display: 'flex', alignItems: 'center', gap: '5px'}}>
-                        <GraduationCap size={16}/> Sem {m.sem}
-                      </span>
-                      <div className="creditos-badge">{m.credits}</div>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-    </>
+    </div>
   );
 };
 

@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Materia;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Auth;
 
 class MateriaController extends Controller
 {
@@ -45,7 +47,6 @@ class MateriaController extends Controller
             ], 404);
         }
 
-        // 🔥 Manejo de imágenes (igual que tu lógica)
         $imagenes = $materia->imagenes ?? collect();
 
         if ($imagenes->count() < 2) {
@@ -72,29 +73,27 @@ class MateriaController extends Controller
     public function store(Request $request)
     {
         $user = auth()->user();
-
-        if ($user->nivel !== 'docente') {
-            return response()->json([
-                'success' => false,
-                'message' => 'Solo docentes pueden crear materias'
-            ], 403);
-        }
+        $userId = $user ? $user->id : $request->id_users;
 
         $request->validate([
-            'nombre' => 'required|string|max:255',
+            'nombre'   => 'required|string|max:255',
+            'cat'      => 'nullable|string',
+            'sem'      => 'nullable|integer',
+            'iconName' => 'nullable|string',
         ]);
 
-        // 🔥 generar código automático
         $prefix = strtoupper(substr($request->nombre, 0, 3));
-
         $count = Materia::where('codigo_materia', 'like', $prefix . '%')->count();
-
         $codigo = $prefix . str_pad($count + 1, 3, '0', STR_PAD_LEFT);
 
         $materia = Materia::create([
-            'nombre' => $request->nombre,
+            'nombre'         => $request->nombre,
             'codigo_materia' => $codigo,
-            'id_users' => $user->id // 🔥 ya no session
+            'id_users'       => $userId,
+            'cat'            => $request->cat ?? 'programacion',
+            'sem'            => $request->sem ?? 1,
+            'iconName'       => $request->iconName ?? 'code-2',
+            'estatus'        => 1
         ]);
 
         return response()->json([
@@ -106,7 +105,7 @@ class MateriaController extends Controller
 
     /*
     |--------------------------------------------------------------------------
-    | ACTUALIZAR MATERIA
+    | ACTUALIZAR MATERIA (CON VALIDACIÓN DE DUEÑO)
     |--------------------------------------------------------------------------
     */
     public function update(Request $request, $id)
@@ -114,10 +113,13 @@ class MateriaController extends Controller
         $materia = Materia::find($id);
 
         if (!$materia) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Materia no encontrada'
-            ], 404);
+            return response()->json(['success' => false, 'message' => 'Materia no encontrada'], 404);
+        }
+
+        // Validar que el usuario sea el creador
+        $userId = auth()->user() ? auth()->user()->id : $request->id_users;
+        if ($materia->id_users != $userId) {
+            return response()->json(['success' => false, 'message' => 'No tienes permiso para editar esta materia.'], 403);
         }
 
         $materia->update($request->all());
@@ -131,18 +133,21 @@ class MateriaController extends Controller
 
     /*
     |--------------------------------------------------------------------------
-    | ELIMINAR MATERIA
+    | ELIMINAR MATERIA (CON VALIDACIÓN DE DUEÑO)
     |--------------------------------------------------------------------------
     */
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
         $materia = Materia::find($id);
 
         if (!$materia) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Materia no encontrada'
-            ], 404);
+            return response()->json(['success' => false, 'message' => 'Materia no encontrada'], 404);
+        }
+
+        // Validar que el usuario sea el creador
+        $userId = auth()->user() ? auth()->user()->id : $request->id_users;
+        if ($materia->id_users != $userId) {
+            return response()->json(['success' => false, 'message' => 'No tienes permiso para eliminar esta materia.'], 403);
         }
 
         $materia->delete();

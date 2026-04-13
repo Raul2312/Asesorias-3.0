@@ -11,6 +11,12 @@ return new class extends Migration {
             $table->foreignId('id_users')->constrained('users')->onDelete('cascade');
             $table->string('codigo_materia', 50)->unique();
             $table->string('nombre', 150);
+            
+            // --- NUEVOS CAMPOS PARA EL DISEÑO ---
+            $table->string('cat')->default('programacion'); // Categoría (programacion, redes, etc)
+            $table->integer('sem')->default(1);            // Semestre
+            $table->string('iconName')->default('code-2'); // Nombre del ícono de Lucide
+            
             $table->boolean('estatus')->default(1);
             $table->timestamps();
         });

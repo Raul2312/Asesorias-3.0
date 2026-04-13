@@ -10,8 +10,9 @@ function App() {
 
         {/* 🔐 Login */}
         <Route path="/" element={<Login />} />
-        <Route path="/home/:id" element={<Home />} />
+       
         <Route path="/materias" element={<CatalogoMaterias />} />
+        <Route path="/materia/:id" element={<Home />} />
         <Route path="*" element={<Navigate to="/" />} />
 
 

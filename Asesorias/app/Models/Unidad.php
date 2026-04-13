@@ -20,5 +20,7 @@ class Unidad extends Model
     return $this->belongsTo(Materia::class, 'id_materia');
 }
 
+    
+
 }
 
