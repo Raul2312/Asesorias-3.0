@@ -9,16 +9,10 @@ class Subtema extends Model
 {
     use HasFactory;
 
-    protected $table = 'subtemas';
-    protected $fillable = ['id_unidad', 'nombre', 'descripcion'];
+    protected $fillable = ['nombre', 'descripcion', 'contenido', 'tema_id'];
 
-    public function contenidos()
-{
-    return $this->hasMany(Contenido::class, 'id_subtema');
-}
-public function unidad()
-{
-    return $this->belongsTo(Unidad::class, 'id_unidad');
-}
-
+    // Convertimos automáticamente el JSON de la DB a un array de PHP
+    protected $casts = [
+        'contenido' => 'array'
+    ];
 }

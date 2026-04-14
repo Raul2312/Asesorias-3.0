@@ -6,17 +6,16 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration {
     public function up(): void {
-        Schema::create('subtemas', function (Blueprint $table) {
+        Schema::create('temas', function (Blueprint $table) {
     $table->id();
     $table->string('nombre');
-    $table->text('descripcion')->nullable();
-    $table->longText('contenido')->nullable(); // Guardará el JSON de ContentBlock[]
-    $table->foreignId('tema_id')->constrained('temas')->onDelete('cascade');
+    $table->unsignedBigInteger('unidad_id');
+    $table->integer('orden')->default(1);
     $table->timestamps();
 });
     }
 
     public function down(): void {
-        Schema::dropIfExists('subtemas');
+        Schema::dropIfExists('temas');
     }
 };

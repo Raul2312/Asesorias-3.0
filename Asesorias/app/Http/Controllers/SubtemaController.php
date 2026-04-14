@@ -2,134 +2,39 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\Subtema;
-use App\Models\Contenido;
+use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
 
 class SubtemaController extends Controller
 {
-    public function show($id)
+    public function store(Request $request): JsonResponse
     {
-        $subtema = Subtema::with(['unidad.materia', 'contenidos'])->find($id);
+        $request->validate(['nombre' => 'required', 'tema_id' => 'required']);
 
-        if (!$subtema) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Subtema no encontrado'
-            ], 404);
-        }
-
-        // 🔥 crear contenido automático si es docente
-        if ($subtema->contenidos()->count() === 0 && auth()->user()->nivel === 'docente') {
-            Contenido::create([
-                'id_subtema' => $subtema->id,
-                'id_user' => auth()->id(),
-                'titulo' => 'Descripción',
-                'contenido' => ''
-            ]);
-
-            $subtema->load('contenidos');
-        }
-
-        return response()->json([
-            'success' => true,
-            'data' => $subtema
+        $subtema = Subtema::create([
+            'nombre'      => $request->nombre,
+            'descripcion' => $request->descripcion,
+            'tema_id'     => $request->tema_id,
+            'contenido'   => [] // Inicia como un array vacío (JSON)
         ]);
+
+        return response()->json(['success' => true, 'data' => $subtema], 201);
     }
 
-    public function store(Request $request)
+    public function update(Request $request, $id): JsonResponse
     {
-        if (auth()->user()->nivel !== 'docente') {
-            return response()->json(['success'=>false,'message'=>'No autorizado'],403);
-        }
+        $subtema = Subtema::findOrFail($id);
+        
+        // Esto permite actualizar nombre/desc o el contenido (JSON) del editor
+        $subtema->update($request->all());
 
-        $request->validate([
-            'id_unidad' => 'required|exists:unidades,id',
-            'nombre' => 'required|string|max:150',
-        ]);
-
-        $subtema = Subtema::create($request->all());
-
-        return response()->json([
-            'success' => true,
-            'data' => $subtema
-        ], 201);
+        return response()->json(['success' => true, 'data' => $subtema]);
     }
 
-    public function update(Request $request, $id)
+    public function destroy($id): JsonResponse
     {
-        if (auth()->user()->nivel !== 'docente') {
-            return response()->json(['success'=>false,'message'=>'No autorizado'],403);
-        }
-
-        $subtema = Subtema::find($id);
-
-        if (!$subtema) {
-            return response()->json([
-                'success'=>false,
-                'message'=>'Subtema no encontrado'
-            ],404);
-        }
-
-        $subtema->update($request->only('nombre'));
-
-        return response()->json([
-            'success' => true,
-            'data' => $subtema
-        ]);
-    }
-
-    public function guardarDescripcion(Request $request)
-    {
-        if (auth()->user()->nivel !== 'docente') {
-            return response()->json(['success'=>false,'message'=>'No autorizado'],403);
-        }
-
-        $request->validate([
-            'id_subtema' => 'required|exists:subtemas,id',
-            'descripcion' => 'required|string'
-        ]);
-
-        $subtema = Subtema::findOrFail($request->id_subtema);
-
-        $contenido = $subtema->contenidos()->first();
-
-        if ($contenido) {
-            $contenido->update([
-                'contenido' => $request->descripcion,
-                'id_user' => auth()->id()
-            ]);
-        } else {
-            Contenido::create([
-                'id_subtema' => $subtema->id,
-                'id_user' => auth()->id(),
-                'titulo' => 'Descripción',
-                'contenido' => $request->descripcion
-            ]);
-        }
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Descripción guardada'
-        ]);
-    }
-
-    public function destroy($id)
-    {
-        $subtema = Subtema::find($id);
-
-        if (!$subtema) {
-            return response()->json([
-                'success'=>false,
-                'message'=>'Subtema no encontrado'
-            ],404);
-        }
-
-        $subtema->delete();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Subtema eliminado'
-        ]);
+        Subtema::destroy($id);
+        return response()->json(['success' => true]);
     }
 }
