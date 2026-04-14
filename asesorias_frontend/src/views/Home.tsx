@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useLocation } from 'react-router-dom';
+import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Pencil, Check, X as CloseIcon, BookOpen } from 'lucide-react'; 
+import { Pencil, Check, X as CloseIcon, BookOpen, ChevronRight, Home as HomeIcon } from 'lucide-react'; 
 import '../css/home.css';
 
+// --- Interfaces ---
 interface Course {
   id: number;
   nombre: string;
@@ -14,7 +15,11 @@ interface Course {
 export default function Home() {
   const { id } = useParams(); 
   const location = useLocation();
+  const navigate = useNavigate();
+  
+  // Datos del estado de navegación
   const nombreMateria = location.state?.nombreMateria || "Detalles de Materia";
+  const unidadSeleccionada = location.state?.unidadSeleccionada || null; // Para nivel "Temas"
 
   const [courses, setCourses] = useState<Course[]>([]);
   const [activeTab, setActiveTab] = useState('Unidades ');
@@ -33,6 +38,7 @@ export default function Home() {
   const userNivel = localStorage.getItem("user_nivel") || "alumno"; 
   const token = localStorage.getItem("token");
 
+  // --- Lógica de Carga ---
   const fetchData = async () => {
     try {
       const resDesc = await axios.get(`http://127.0.0.1:8000/api/descripcion-materia/${id}`);
@@ -139,6 +145,46 @@ export default function Home() {
         </div>
       </div>
 
+      <nav aria-label="breadcrumb" style={{ maxWidth: '1200px', margin: '20px auto 0', padding: '0 24px' }}>
+        <ol className="breadcrumb" style={{ 
+          background: '#f8f9fa', 
+          padding: '12px 20px', 
+          borderRadius: '12px', 
+          display: 'flex', 
+          listStyle: 'none',
+          alignItems: 'center',
+          gap: '8px',
+          fontSize: '14px',
+          border: '1px solid #e9ecef'
+        }}>
+          <li className="breadcrumb-item">
+            <button 
+              onClick={() => navigate('/materias')} 
+              style={{ background: 'none', border: 'none', color: '#1e1e4a', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+            >
+              <HomeIcon size={14} /> Materias
+            </button>
+          </li>
+          
+          <li className="breadcrumb-item" style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#6c757d' }}>
+            <ChevronRight size={14} />
+            <button 
+               onClick={() => navigate(`/materia/${id}`, { state: { nombreMateria } })}
+               style={{ background: 'none', border: 'none', color: unidadSeleccionada ? '#1e1e4a' : '#6c757d', fontWeight: unidadSeleccionada ? '600' : '400', cursor: 'pointer' }}
+            >
+              {nombreMateria}
+            </button>
+          </li>
+
+          {activeTab === 'Unidades ' && (
+             <li className="breadcrumb-item active" style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#6c757d' }}>
+              <ChevronRight size={14} />
+              <span>Unidades</span>
+            </li>
+          )}
+        </ol>
+      </nav>
+
       <main>
         {activeTab === 'Unidades ' && (
           <div className="courses-grid">
@@ -154,7 +200,13 @@ export default function Home() {
                     </div>
                     <h3 className="course-title">{course.nombre}</h3>
                     <p className="course-desc">{course.titulo || 'Sin descripción adicional'}</p>
-                    <button className="course-link">Explorar Unidad →</button>
+                    <button className="course-link" onClick={() => {
+                        navigate(`/materia/${id}/unidad/${course.id}`, { 
+                          state: { nombreMateria, nombreUnidad: course.nombre, numeroUnidad: course.numero_unidad } 
+                        });
+                    }}>
+                      Explorar Unidad →
+                    </button>
                   </div>
                 </div>
               ))
@@ -168,9 +220,8 @@ export default function Home() {
         {activeTab !== 'Unidades ' && <EmptyState icon="✏️" title={activeTab} />}
       </main>
 
-      {/* --- MODAL DISEÑO "NUEVA ASIGNATURA" --- */}
       {showModal && (
-        <div className="modal-overlay" style={{ backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }} onClick={() => setShowModal(false)}>
+        <div className="modal-overlay" style={{ backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', position: 'fixed', top:0, left:0, width:'100%', height:'100%', display:'flex', justifyContent:'center', alignItems:'center', zIndex: 1000 }} onClick={() => setShowModal(false)}>
           <div className="modal-content" onClick={e => e.stopPropagation()} style={{ 
             background: 'white', 
             borderRadius: '24px', 
@@ -180,7 +231,6 @@ export default function Home() {
             boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)',
             position: 'relative'
           }}>
-            {/* Botón Cerrar */}
             <button 
               onClick={() => setShowModal(false)} 
               style={{ position: 'absolute', top: '24px', right: '24px', border: 'none', background: 'none', cursor: 'pointer', color: '#1e1e4a' }}
@@ -193,9 +243,8 @@ export default function Home() {
             </h2>
             
             <form onSubmit={handleAddCourse}>
-              {/* Nombre de la unidad */}
               <div style={{ marginBottom: '24px' }}>
-                <label style={{ color: '#1e1e4a', display: 'block', marginBottom: '12px', fontWeight: '700', textAlign: 'center' }}>
+                <label style={{ color: '#1e1e4a', display: 'block', marginBottom: '12px', fontWeight: '700' }}>
                   Nombre de la unidad
                 </label>
                 <input 
@@ -216,10 +265,9 @@ export default function Home() {
                 />
               </div>
 
-              {/* Título y Número en la misma fila */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '32px' }}>
                 <div>
-                  <label style={{ color: '#1e1e4a', display: 'block', marginBottom: '12px', fontWeight: '700', textAlign: 'center' }}>
+                  <label style={{ color: '#1e1e4a', display: 'block', marginBottom: '12px', fontWeight: '700' }}>
                     Descripción corta
                   </label>
                   <input 
@@ -238,7 +286,7 @@ export default function Home() {
                   />
                 </div>
                 <div>
-                  <label style={{ color: '#1e1e4a', display: 'block', marginBottom: '12px', fontWeight: '700', textAlign: 'center' }}>
+                  <label style={{ color: '#1e1e4a', display: 'block', marginBottom: '12px', fontWeight: '700' }}>
                     Nº Unidad
                   </label>
                   <input 
@@ -259,7 +307,6 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Botón Registrar */}
               <button type="submit" style={{ 
                 background: '#1e1e4a', 
                 color: 'white', 
@@ -271,10 +318,7 @@ export default function Home() {
                 fontWeight: '700',
                 fontSize: '18px',
                 transition: 'transform 0.2s'
-              }}
-              onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.98)'}
-              onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
-              >
+              }}>
                 Registrar Unidad
               </button>
             </form>
