@@ -662,3 +662,119 @@
   overflow-y: auto;
   background: white;
 }
+/* --- BOTONES DE ACCIÓN EN LAS TARJETAS (ESTILO PREMIUM) --- */
+.subtopic-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.subtopic-controls {
+  display: flex;
+  gap: 6px;
+}
+
+.btn-card-control {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  border: 1px solid rgba(124, 58, 237, 0.1);
+  background: rgba(124, 58, 237, 0.05);
+  color: #7C3AED;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-card-control:hover {
+  background: #7C3AED;
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.2);
+}
+
+/* Botón de eliminar con estilo de advertencia suave */
+.btn-card-control.btn-danger {
+  color: #EF4444;
+  background: rgba(239, 68, 68, 0.05);
+  border-color: rgba(239, 68, 68, 0.1);
+}
+
+.btn-card-control.btn-danger:hover {
+  background: #EF4444;
+  color: white;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
+}
+
+/* --- BLOQUES DE EDICIÓN (IDÉNTICOS A TU SEGUNDA IMAGEN) --- */
+.edit-block-container {
+  max-width: 900px;
+  margin: 0 auto 32px;
+}
+
+.edit-block-label {
+  font-family: 'Sora', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  color: #A78BFA; /* Morado claro de tu captura */
+  margin-bottom: 8px;
+  margin-left: 4px;
+}
+
+.edit-block-main {
+  background: white;
+  border: 1px solid #F3F0FF;
+  border-radius: 12px;
+  padding: 16px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+  transition: border 0.3s ease;
+}
+
+.edit-block-main:hover {
+  border-color: #DDD6FE;
+}
+
+.edit-block-content {
+  color: #4B5563;
+  font-size: 16px;
+  margin: 0;
+  font-family: 'DM Sans', sans-serif;
+}
+
+/* Botones laterales (Color y Tamaño) */
+.edit-block-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.btn-block-tool {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-radius: 8px;
+  color: #6D28D9;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-block-tool:hover {
+  background: #F9FAFB;
+  border-color: #7C3AED;
+  color: #7C3AED;
+}
+
+/* Iconos dentro de los botones de herramienta */
+.btn-block-tool svg {
+  color: #A78BFA;
+}
