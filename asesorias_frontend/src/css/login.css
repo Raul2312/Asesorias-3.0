@@ -277,11 +277,11 @@ body{
     background:
     linear-gradient(
         135deg,
-        #5b2c83,
-        #7442aa
+        #422160,
+        #3d225a
     );
 
-    color:white;
+    color:rgb(33, 26, 26);
 
     font-weight:700;
 
