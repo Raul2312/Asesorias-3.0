@@ -13,7 +13,8 @@ use App\Http\Controllers\ImagenMateriaController;
 use App\Http\Controllers\PerfilController;
 use App\Http\Controllers\EjercicioController;
 use App\Http\Controllers\MultimediaController;
-use App\Http\Controllers\TemasController; // Importación correcta
+use App\Http\Controllers\TemasController;
+
 
 /*
 |--------------------------------------------------------------------------
@@ -21,74 +22,308 @@ use App\Http\Controllers\TemasController; // Importación correcta
 |--------------------------------------------------------------------------
 */
 
+// Autenticación
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/register', [AuthController::class, 'register']);
 
+
+// -------------------------------------------------------------------------
+// CONSULTAS PÚBLICAS
+// -------------------------------------------------------------------------
+
+// Materias
 Route::get('/materias', [MateriaController::class, 'index']);
 Route::get('/materias/{codigo}', [MateriaController::class, 'show']);
-Route::get('/subtemas/{id}', [SubtemaController::class, 'show']);
-Route::get('/ejercicios/{id}', [EjercicioController::class, 'show']);
 Route::get('/materias/{materia}/imagenes', [ImagenMateriaController::class, 'index']);
 
-// --- CORRECCIÓN RUTAS DE TEMAS ---
-// Cambiamos {unidad} por {unidadId} para que coincida con tu controlador
-Route::get('/unidades/{unidadId}/temas', [TemasController::class, 'index']); 
-Route::post('/temas', [TemasController::class, 'store']);
-Route::put('/temas/{id}', [TemasController::class, 'update']);
-Route::delete('/temas/{id}', [TemasController::class, 'destroy']);
+// Descripción de materia
+Route::get(
+    '/descripcion-materia/{id_materia}',
+    [DescripcionMateriaController::class, 'show']
+);
 
-// --- CORRECCIÓN RUTAS DE SUBTEMAS ---
-// Usamos {id} para que el controlador lo reciba correctamente
-Route::post('/subtemas', [SubtemaController::class, 'store']);
-Route::put('/subtemas/{id}', [SubtemaController::class, 'update']);
-Route::delete('/subtemas/{id}', [SubtemaController::class, 'destroy']);
+// Unidades
+Route::get(
+    '/unidades/materia/{materiaId}',
+    [UnidadController::class, 'indexPorMateria']
+);
 
-Route::get('/descripcion-materia/{id_materia}', [DescripcionMateriaController::class, 'show']);
-Route::post('/descripcion-materia', [DescripcionMateriaController::class, 'store']);
+// Temas de una unidad
+Route::get(
+    '/unidades/{unidadId}/temas',
+    [TemasController::class, 'index']
+);
 
-Route::get('/unidades/materia/{materiaId}', [UnidadController::class, 'indexPorMateria']);
-Route::put('/unidades/{id}', [UnidadController::class, 'update']);
-Route::delete('/unidades/{id}', [UnidadController::class, 'destroy']);
-Route::post('/unidades/{materiaId}', [UnidadController::class, 'store']);
+// Subtema individual
+Route::get(
+    '/subtemas/{id}',
+    [SubtemaController::class, 'show']
+);
+
+// Ejercicios
+Route::get(
+    '/ejercicios/{id}',
+    [EjercicioController::class, 'show']
+);
+
 
 /*
 |--------------------------------------------------------------------------
-| 🔐 RUTAS PROTEGIDAS (JWT)
+| 🔐 RUTAS AUTENTICADAS
 |--------------------------------------------------------------------------
 */
 
 Route::middleware(['auth:api'])->group(function () {
 
+    /*
+    |--------------------------------------------------------------------------
+    | 👤 USUARIO / PERFIL
+    |--------------------------------------------------------------------------
+    */
+
     Route::get('/me', [AuthController::class, 'me']);
+
     Route::post('/logout', [AuthController::class, 'logout']);
+
     Route::get('/perfil', [PerfilController::class, 'index']);
+
     Route::post('/perfil', [PerfilController::class, 'actualizar']);
 
-    Route::post('/descripcion-materia', [DescripcionMateriaController::class, 'store']);
-    Route::post('/materias/imagen', [ImagenMateriaController::class, 'store']);
 
-    Route::post('/subtemas/descripcion', [SubtemaController::class, 'guardarDescripcion']);
+    /*
+    |--------------------------------------------------------------------------
+    | 📚 DESCRIPCIÓN DE MATERIA
+    |--------------------------------------------------------------------------
+    */
 
-    Route::get('/eje-subtemas/{id}', [EjeSubtemaController::class, 'show']);
-    Route::post('/eje-subtemas', [EjeSubtemaController::class, 'store']);
-    Route::put('/eje-subtemas/{id}', [EjeSubtemaController::class, 'update']);
-    Route::delete('/eje-subtemas/{id}', [EjeSubtemaController::class, 'destroy']);
+    Route::post(
+        '/descripcion-materia',
+        [DescripcionMateriaController::class, 'store']
+    );
 
-    Route::post('/materias/{materia}/unidades', [UnidadController::class, 'store']);
-    
-    Route::post('/materias/{materia}/eje-unidades', [EjeUnidadController::class, 'store']);
-    Route::put('/eje-unidades/{id}', [EjeUnidadController::class, 'update']);
-    Route::delete('/eje-unidades/{id}', [EjeUnidadController::class, 'destroy']);
 
-    Route::post('/ejercicios', [EjercicioController::class, 'store']);
-    Route::put('/ejercicios/{id}', [EjercicioController::class, 'update']);
-    Route::delete('/ejercicios/{id}', [EjercicioController::class, 'destroy']);
-    
-    Route::post('/subtemas/{subtema}/imagen', [MultimediaController::class, 'guardarImagen']);
+    /*
+    |--------------------------------------------------------------------------
+    | 🖼️ IMÁGENES DE MATERIAS
+    |--------------------------------------------------------------------------
+    */
+
+    Route::post(
+        '/materias/imagen',
+        [ImagenMateriaController::class, 'store']
+    );
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | 📖 UNIDADES
+    |--------------------------------------------------------------------------
+    */
+
+    // Crear unidad
+    Route::post(
+        '/materias/{materia}/unidades',
+        [UnidadController::class, 'store']
+    );
+
+    // Crear unidad usando ID de materia
+    Route::post(
+        '/unidades/{materiaId}',
+        [UnidadController::class, 'store']
+    );
+
+    // Editar unidad
+    Route::put(
+        '/unidades/{id}',
+        [UnidadController::class, 'update']
+    );
+
+    // Eliminar unidad
+    Route::delete(
+        '/unidades/{id}',
+        [UnidadController::class, 'destroy']
+    );
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | 📌 EJES DE UNIDAD
+    |--------------------------------------------------------------------------
+    */
+
+    Route::post(
+        '/materias/{materia}/eje-unidades',
+        [EjeUnidadController::class, 'store']
+    );
+
+    Route::put(
+        '/eje-unidades/{id}',
+        [EjeUnidadController::class, 'update']
+    );
+
+    Route::delete(
+        '/eje-unidades/{id}',
+        [EjeUnidadController::class, 'destroy']
+    );
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | 📝 SUBTEMAS - FUNCIONES GENERALES
+    |--------------------------------------------------------------------------
+    */
+
+    Route::post(
+        '/subtemas/descripcion',
+        [SubtemaController::class, 'guardarDescripcion']
+    );
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | 📐 EJES DE SUBTEMAS
+    |--------------------------------------------------------------------------
+    */
+
+    Route::get(
+        '/eje-subtemas/{id}',
+        [EjeSubtemaController::class, 'show']
+    );
+
+    Route::post(
+        '/eje-subtemas',
+        [EjeSubtemaController::class, 'store']
+    );
+
+    Route::put(
+        '/eje-subtemas/{id}',
+        [EjeSubtemaController::class, 'update']
+    );
+
+    Route::delete(
+        '/eje-subtemas/{id}',
+        [EjeSubtemaController::class, 'destroy']
+    );
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | 🧮 EJERCICIOS
+    |--------------------------------------------------------------------------
+    */
+
+    Route::post(
+        '/ejercicios',
+        [EjercicioController::class, 'store']
+    );
+
+    Route::put(
+        '/ejercicios/{id}',
+        [EjercicioController::class, 'update']
+    );
+
+    Route::delete(
+        '/ejercicios/{id}',
+        [EjercicioController::class, 'destroy']
+    );
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | 👨‍🏫 RUTAS EXCLUSIVAS PARA DOCENTES
+    |--------------------------------------------------------------------------
+    */
 
     Route::middleware('rol:docente')->group(function () {
-        Route::post('/materias', [MateriaController::class, 'store']);
-        Route::put('/materias/{id}', [MateriaController::class, 'update']);
-        Route::delete('/materias/{id}', [MateriaController::class, 'destroy']);
+
+        Route::post(
+        '/subtemas/{subtema}/imagen',
+        [MultimediaController::class, 'guardarImagen']
+        );
+        /*
+        |--------------------------------------------------------------------------
+        | 📚 MATERIAS
+        |--------------------------------------------------------------------------
+        */
+
+        Route::post(
+            '/materias',
+            [MateriaController::class, 'store']
+        );
+
+        Route::put(
+            '/materias/{id}',
+            [MateriaController::class, 'update']
+        );
+
+        Route::delete(
+            '/materias/{id}',
+            [MateriaController::class, 'destroy']
+        );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | 📌 TEMAS
+        |--------------------------------------------------------------------------
+        */
+
+        // Crear tema
+        Route::post(
+            '/temas',
+            [TemasController::class, 'store']
+        );
+
+        // Editar tema
+        Route::put(
+            '/temas/{id}',
+            [TemasController::class, 'update']
+        );
+
+        // Eliminar tema
+        Route::delete(
+            '/temas/{id}',
+            [TemasController::class, 'destroy']
+        );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | 📑 SUBTEMAS
+        |--------------------------------------------------------------------------
+        */
+
+        // Crear subtema
+        Route::post(
+            '/subtemas',
+            [SubtemaController::class, 'store']
+        );
+
+        // Editar subtema
+        Route::put(
+            '/subtemas/{id}',
+            [SubtemaController::class, 'update']
+        );
+
+        // Eliminar subtema
+        Route::delete(
+            '/subtemas/{id}',
+            [SubtemaController::class, 'destroy']
+        );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | 🖼️ MULTIMEDIA DE SUBTEMAS
+        |--------------------------------------------------------------------------
+        */
+
+        // Subir imagen dentro del contenido de un subtema
+        Route::post(
+            '/subtemas/{subtema}/imagen',
+            [MultimediaController::class, 'guardarImagen']
+        );
+
     });
+
 });

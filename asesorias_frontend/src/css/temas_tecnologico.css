@@ -10,6 +10,9 @@
   margin: 0;
   background: #F9F8FB;
   min-height: 100vh;
+    height: auto;
+    overflow-x: hidden;
+    overflow-y: auto;
 }
 
 .font-heading {
