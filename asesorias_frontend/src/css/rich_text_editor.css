@@ -127,6 +127,7 @@
         0 3px 15px rgba(0, 0, 0, 0.12);
 
     border-radius: 2px;
+    cursor: text;
 }
 
 
@@ -145,9 +146,12 @@
 ========================================== */
 
 .editor-document .ProseMirror {
+    width: 100%;
     min-height: 950px;
 
     outline: none;
+
+    margin: 0 auto;
 
     color: #1f2937;
 
@@ -159,6 +163,11 @@
     font-size: 16px;
 
     line-height: 1.7;
+
+    box-sizing: border-box;
+     cursor: text;
+    caret-color: #111827;
+    
 }
 
 
@@ -471,3 +480,74 @@ img[data-align="right"] {
 
     margin-right: 0;
 }
+.editor-document {
+    width: min(900px, 100%);
+    min-height: 1100px;
+
+    margin: 0 auto;
+
+    background: white;
+
+    padding: 70px 80px;
+
+    box-shadow:
+        0 3px 15px rgba(0, 0, 0, 0.12);
+
+    border-radius: 2px;
+
+    box-sizing: border-box;
+}
+
+/* ==========================================
+   PUNTERO DEL MOUSE SOBRE EL EDITOR
+========================================== */
+
+.rich-editor {
+    cursor: default !important;
+}
+
+.editor-toolbar,
+.editor-toolbar * {
+    cursor: default !important;
+}
+
+.editor-toolbar button,
+.editor-toolbar button * {
+    cursor: pointer !important;
+}
+
+.editor-scroll-area {
+    cursor: default !important;
+}
+
+.editor-document {
+    cursor: default !important;
+}
+
+.editor-document .ProseMirror {
+    cursor: default !important;
+}
+
+/* MUY IMPORTANTE:
+   los elementos internos NO deben ocultar el mouse */
+.editor-document .ProseMirror p,
+.editor-document .ProseMirror h1,
+.editor-document .ProseMirror h2,
+.editor-document .ProseMirror h3,
+.editor-document .ProseMirror ul,
+.editor-document .ProseMirror ol,
+.editor-document .ProseMirror li,
+.editor-document .ProseMirror div {
+    cursor: text !important;
+}
+
+/* Imágenes */
+.editor-document .ProseMirror img {
+    cursor: pointer !important;
+}
+
+/* Links */
+.editor-document .ProseMirror a {
+    cursor: pointer !important;
+}
+

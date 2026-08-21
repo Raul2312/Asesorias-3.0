@@ -1,920 +1,1172 @@
-import React, {
-  useEffect,
-  useRef,
-  useState
-} from 'react';
+import React, { useEffect } from 'react';
 
-import { EditorContent, useEditor } from '@tiptap/react';
+import {
+  EditorContent,
+  useEditor,
+} from '@tiptap/react';
 
 import StarterKit from '@tiptap/starter-kit';
+
+import Underline from '@tiptap/extension-underline';
 
 import Link from '@tiptap/extension-link';
 
 import Image from '@tiptap/extension-image';
 
-import { mergeAttributes } from '@tiptap/core';
+import TextAlign from '@tiptap/extension-text-align';
 
 import {
   Bold,
   Italic,
-  Underline,
+  Underline as UnderlineIcon,
   Strikethrough,
-  Undo2,
-  Redo2,
   AlignLeft,
   AlignCenter,
   AlignRight,
+  AlignJustify,
   List,
   ListOrdered,
   Quote,
-  Code,
-  Code2,
-  Minus,
+  Undo2,
+  Redo2,
+  ImagePlus,
   Link as LinkIcon,
-  Image as ImageIcon,
-  Trash2,
-  Type,
+  Unlink,
+  Minus,
   Heading1,
   Heading2,
-  Heading3
+  Heading3,
 } from 'lucide-react';
 
 import '../css/rich_text_editor.css';
 
+
+/* =========================================================
+   PROPS
+========================================================= */
+
+interface RichEditorProps {
+
+  content: string;
+
+  onChange: (content: string) => void;
+
+  readOnly?: boolean;
+
+}
+
+
+/* =========================================================
+   IMAGEN PERSONALIZADA
+========================================================= */
+
 const CustomImage = Image.extend({
-
   addAttributes() {
-
     return {
-
       ...this.parent?.(),
 
       width: {
-        default: 'auto',
+        default: null,
 
         parseHTML: element =>
           element.getAttribute('width') ||
           element.style.width ||
-          'auto',
+          null,
 
         renderHTML: attributes => {
-
           if (!attributes.width) {
             return {};
           }
 
           return {
             width: attributes.width,
-            style:
-              `width:${attributes.width};height:auto;`
+            style: `width: ${attributes.width}; height: auto;`,
           };
-
         },
-
       },
-
     };
-
   },
-
 });
 
-interface RichEditorProps {
-  content: string;
-  editable?: boolean;
-  onChange?: (html: string) => void;
-  subtemaId?: number;
-}
+
+/* =========================================================
+   COMPONENTE
+========================================================= */
 
 export default function RichEditor({
+
   content,
-  editable = true,
+
   onChange,
-  subtemaId
+
+  readOnly = false,
+
 }: RichEditorProps) {
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [uploadingImage, setUploadingImage] = useState(false);
-
-  const [selectedImage, setSelectedImage] = useState(false);
-
-  const [imageWidth, setImageWidth] = useState('100%');
-
-  const token = localStorage.getItem('token');
+  /* =======================================================
+     EDITOR TIPTAP
+  ======================================================= */
 
   const editor = useEditor({
 
-    editable,
+    editable: !readOnly,
 
     extensions: [
 
-      StarterKit,
+      /*
+       * Tiptap 3
+       *
+       * Desactivamos Link del StarterKit
+       * porque lo agregamos manualmente.
+       */
 
-      Link.configure({
-        openOnClick: !editable,
-        autolink: true,
-        linkOnPaste: true,
+      StarterKit.configure({
+
+        link: false,
+
       }),
 
+
+      /* SUBRAYADO */
+
+      Underline,
+
+
+      /* ENLACES */
+
+      Link.configure({
+
+        openOnClick: false,
+
+        autolink: true,
+
+        defaultProtocol: 'https',
+
+      }),
+
+
+      /* IMÁGENES */
+
       CustomImage.configure({
+
         inline: false,
-        allowBase64: false,
-        HTMLAttributes: {
-          class: 'editor-image',
-        },
+
+        allowBase64: true,
+
+      }),
+
+
+      /* ALINEACIÓN */
+
+      TextAlign.configure({
+
+        types: [
+
+          'heading',
+
+          'paragraph',
+
+        ],
+
       }),
 
     ],
 
-    content: content || '<p></p>',
+
+    /*
+     * Contenido inicial
+     */
+
+    content,
+
+
+    /*
+     * CADA VEZ QUE EL USUARIO ESCRIBE
+     */
 
     onUpdate: ({ editor }) => {
 
-      if (onChange) {
-        onChange(editor.getHTML());
-      }
+      const html = editor.getHTML();
 
-    },
-
-    onSelectionUpdate: ({ editor }) => {
-
-      const imageActive =
-        editor.isActive('image');
-
-      setSelectedImage(imageActive);
-
-      if (imageActive) {
-
-        const attrs =
-          editor.getAttributes('image');
-
-        setImageWidth(
-          attrs.width || '100%'
-        );
-
-      }
+      onChange(html);
 
     },
 
   });
 
-  /*
-  |--------------------------------------------------------------------------
-  | Actualizar contenido cuando cambia desde fuera
-  |--------------------------------------------------------------------------
-  */
+
+  /* =======================================================
+     ACTUALIZAR CONTENIDO EXTERNO
+  ======================================================= */
 
   useEffect(() => {
 
     if (!editor) return;
 
+
     const currentHTML = editor.getHTML();
 
+
     if (
-      content &&
-      content !== currentHTML
+
+      content !== currentHTML &&
+
+      !editor.isFocused
+
     ) {
 
-      editor.commands.setContent(content, {
+      editor.commands.setContent(content || '', {
+
         emitUpdate: false,
-    });
+
+      });
 
     }
 
   }, [content, editor]);
 
 
-  /*
-  |--------------------------------------------------------------------------
-  | IMAGEN
-  |--------------------------------------------------------------------------
-  */
+  /* =======================================================
+     CAMBIAR MODO EDITABLE
+  ======================================================= */
 
-  const abrirSelectorImagen = () => {
+  useEffect(() => {
 
-    if (!editable) return;
+    if (!editor) return;
 
-    fileInputRef.current?.click();
+    editor.setEditable(!readOnly);
 
-  };
+  }, [readOnly, editor]);
 
 
-  /*
-  |--------------------------------------------------------------------------
-  | SUBIR IMAGEN
-  |--------------------------------------------------------------------------
-  */
-
-  const subirImagen = async (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
-
-    const archivo =
-      event.target.files?.[0];
-
-    if (!archivo || !editor || !subtemaId) {
-      return;
-    }
-
-    if (!archivo.type.startsWith('image/')) {
-
-      alert(
-        'Selecciona un archivo de imagen válido.'
-      );
-
-      return;
-
-    }
-
-    if (archivo.size > 5 * 1024 * 1024) {
-
-      alert(
-        'La imagen no puede superar los 5 MB.'
-      );
-
-      return;
-
-    }
-
-    try {
-
-      setUploadingImage(true);
-
-      const formData =
-        new FormData();
-
-      formData.append(
-        'imagen',
-        archivo
-      );
-
-      const response =
-        await fetch(
-          `http://localhost:8000/api/subtemas/${subtemaId}/imagen`,
-          {
-            method: 'POST',
-
-            headers: {
-              Authorization:
-                `Bearer ${token}`,
-              Accept:
-                'application/json',
-            },
-
-            body: formData,
-          }
-        );
-
-      const data =
-        await response.json();
-
-      if (!response.ok || !data.success) {
-
-        throw new Error(
-          data.message ||
-          'Error al subir imagen'
-        );
-
-      }
-
-      const imageUrl =
-        data.data.url;
-
-      /*
-       * Insertar imagen en Tiptap
-       */
-
-      editor
-        .chain()
-        .focus()
-        .setImage({
-          src: imageUrl,
-          alt: archivo.name,
-          title: archivo.name,
-        })
-        .run();
-
-    } catch (error) {
-
-      console.error(
-        'ERROR SUBIENDO IMAGEN:',
-        error
-      );
-
-      alert(
-        'No se pudo subir la imagen.'
-      );
-
-    } finally {
-
-      setUploadingImage(false);
-
-      /*
-       * Permitir volver a seleccionar
-       * la misma imagen.
-       */
-
-      event.target.value = '';
-
-    }
-
-  };
-
-
-  /*
-  |--------------------------------------------------------------------------
-  | LINK
-  |--------------------------------------------------------------------------
-  */
-
-  const insertarLink = () => {
-
-    if (!editor || !editable) return;
-
-    const previousUrl =
-      editor.getAttributes('link').href;
-
-    const url =
-      window.prompt(
-        'URL del enlace:',
-        previousUrl || ''
-      );
-
-    if (url === null) return;
-
-    if (url === '') {
-
-      editor
-        .chain()
-        .focus()
-        .unsetLink()
-        .run();
-
-      return;
-
-    }
-
-    editor
-      .chain()
-      .focus()
-      .setLink({
-        href: url
-      })
-      .run();
-
-  };
-
-
-  /*
-  |--------------------------------------------------------------------------
-  | CAMBIAR TAMAÑO DE IMAGEN
-  |--------------------------------------------------------------------------
-  */
-
-  const cambiarTamanoImagen = () => {
-
-    if (!editor || !selectedImage) {
-      return;
-    }
-
-    const actual =
-      editor.getAttributes('image');
-
-    const width =
-      window.prompt(
-        'Ancho de imagen en px o %:',
-        actual.width || '100%'
-      );
-
-    if (!width) return;
-
-    editor
-      .chain()
-      .focus()
-      .updateAttributes(
-        'image',
-        {
-          width
-        }
-      )
-      .run();
-
-    setImageWidth(width);
-
-  };
-
-
-  /*
-  |--------------------------------------------------------------------------
-  | TEXTO ALTERNATIVO
-  |--------------------------------------------------------------------------
-  */
-
-  const cambiarAltImagen = () => {
-
-    if (!editor || !selectedImage) {
-      return;
-    }
-
-    const actual =
-      editor.getAttributes('image');
-
-    const alt =
-      window.prompt(
-        'Texto alternativo:',
-        actual.alt || ''
-      );
-
-    if (alt === null) return;
-
-    editor
-      .chain()
-      .focus()
-      .updateAttributes(
-        'image',
-        {
-          alt
-        }
-      )
-      .run();
-
-  };
-
-
-  /*
-  |--------------------------------------------------------------------------
-  | ENLACE DE IMAGEN
-  |--------------------------------------------------------------------------
-  */
-
-  const agregarLinkImagen = () => {
-
-    if (!editor || !selectedImage) {
-      return;
-    }
-
-    const url =
-      window.prompt(
-        'URL que abrirá al hacer clic:',
-        ''
-      );
-
-    if (!url) return;
-
-    editor
-      .chain()
-      .focus()
-      .setLink({
-        href: url
-      })
-      .run();
-
-  };
-
-
-  /*
-  |--------------------------------------------------------------------------
-  | ELIMINAR IMAGEN
-  |--------------------------------------------------------------------------
-  */
-
-  const eliminarImagen = () => {
-
-    if (!editor || !selectedImage) {
-      return;
-    }
-
-    editor
-      .chain()
-      .focus()
-      .deleteSelection()
-      .run();
-
-  };
-
-
-  /*
-  |--------------------------------------------------------------------------
-  | ALINEACIÓN
-  |--------------------------------------------------------------------------
-  */
-
-  const alinearImagen = (
-    alineacion:
-      'left' |
-      'center' |
-      'right'
-  ) => {
-
-    if (!editor || !selectedImage) {
-      return;
-    }
-
-    const image =
-      document.querySelector(
-        '.ProseMirror img.ProseMirror-selectednode'
-      ) as HTMLImageElement | null;
-
-    if (!image) return;
-
-    if (alineacion === 'left') {
-
-      image.style.marginLeft = '0';
-      image.style.marginRight = 'auto';
-
-    }
-
-    if (alineacion === 'center') {
-
-      image.style.marginLeft = 'auto';
-      image.style.marginRight = 'auto';
-
-    }
-
-    if (alineacion === 'right') {
-
-      image.style.marginLeft = 'auto';
-      image.style.marginRight = '0';
-
-    }
-
-  };
-
+  /* =======================================================
+     CARGANDO
+  ======================================================= */
 
   if (!editor) {
 
     return (
+
       <div className="rich-editor-loading">
+
         Cargando editor...
+
       </div>
+
     );
 
   }
 
 
+  /* =======================================================
+     IMAGEN DESDE PC
+  ======================================================= */
+
+  const addImageFromComputer = () => {
+
+    if (readOnly) return;
+
+
+    const input = document.createElement('input');
+
+    input.type = 'file';
+
+    input.accept = 'image/*';
+
+
+    input.onchange = event => {
+
+      const target = event.target as HTMLInputElement;
+
+      const file = target.files?.[0];
+
+
+      if (!file) return;
+
+
+      /*
+       * Convertimos la imagen a Base64
+       */
+
+      const reader = new FileReader();
+
+
+      reader.onload = () => {
+
+        const src = reader.result as string;
+
+
+        editor
+          .chain()
+          .focus()
+          .setImage({
+
+            src,
+
+          })
+          .run();
+
+      };
+
+
+      reader.readAsDataURL(file);
+
+    };
+
+
+    input.click();
+
+  };
+
+
+  /* =======================================================
+     AGREGAR LINK
+  ======================================================= */
+
+  const addLink = () => {
+
+    if (readOnly) return;
+
+
+    const previousUrl = editor.getAttributes('link').href;
+
+
+    const url = window.prompt(
+
+      'Introduce el enlace:',
+
+      previousUrl || 'https://'
+
+    );
+
+
+    if (url === null) {
+
+      return;
+
+    }
+
+
+    if (url === '') {
+
+      editor
+
+        .chain()
+
+        .focus()
+
+        .unsetLink()
+
+        .run();
+
+      return;
+
+    }
+
+
+    editor
+
+      .chain()
+
+      .focus()
+
+      .extendMarkRange('link')
+
+      .setLink({
+
+        href: url,
+
+      })
+
+      .run();
+
+  };
+
+
+  /* =======================================================
+     BOTÓN TOOLBAR
+  ======================================================= */
+
+  const ToolbarButton = ({
+
+    onClick,
+
+    title,
+
+    active = false,
+
+    disabled = false,
+
+    children,
+
+  }: {
+
+    onClick: () => void;
+
+    title: string;
+
+    active?: boolean;
+
+    disabled?: boolean;
+
+    children: React.ReactNode;
+
+  }) => (
+
+    <button
+
+      type="button"
+
+      title={title}
+
+      onClick={onClick}
+
+      disabled={disabled}
+
+      className={active ? 'active' : ''}
+
+    >
+
+      {children}
+
+    </button>
+
+  );
+
+
+  /* =======================================================
+     RETURN
+  ======================================================= */
+
   return (
 
     <div className="rich-editor">
 
-      {editable && (
 
-        <>
+      {/* =================================================
+          BARRA DE HERRAMIENTAS
+      ================================================= */}
 
-          {/* INPUT OCULTO */}
+      {!readOnly && (
 
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/jpeg,image/png,image/gif,image/webp"
-            style={{ display: 'none' }}
-            onChange={subirImagen}
-          />
+        <div className="editor-toolbar">
 
-          {/* TOOLBAR */}
 
-          <div className="editor-toolbar">
+          {/* DESHACER / REHACER */}
 
-            {/* DESHACER */}
+          <div className="toolbar-group">
 
-            <div className="toolbar-group">
+            <ToolbarButton
 
-              <button
-                type="button"
-                title="Deshacer"
-                onClick={() =>
-                  editor
-                    .chain()
-                    .focus()
-                    .undo()
-                    .run()
-                }
-              >
-                <Undo2 size={17} />
-              </button>
+              title="Deshacer"
 
-              <button
-                type="button"
-                title="Rehacer"
-                onClick={() =>
-                  editor
-                    .chain()
-                    .focus()
-                    .redo()
-                    .run()
-                }
-              >
-                <Redo2 size={17} />
-              </button>
+              onClick={() =>
 
-            </div>
+                editor
 
-            <span className="toolbar-separator" />
+                  .chain()
 
-            {/* TÍTULOS */}
+                  .focus()
 
-            <div className="toolbar-group">
+                  .undo()
 
-              <button
-                type="button"
-                title="Título 1"
-                onClick={() =>
-                  editor
-                    .chain()
-                    .focus()
-                    .toggleHeading({
-                      level: 1
-                    })
-                    .run()
-                }
-              >
-                <Heading1 size={17} />
-              </button>
+                  .run()
 
-              <button
-                type="button"
-                title="Título 2"
-                onClick={() =>
-                  editor
-                    .chain()
-                    .focus()
-                    .toggleHeading({
-                      level: 2
-                    })
-                    .run()
-                }
-              >
-                <Heading2 size={17} />
-              </button>
+              }
 
-              <button
-                type="button"
-                title="Título 3"
-                onClick={() =>
-                  editor
-                    .chain()
-                    .focus()
-                    .toggleHeading({
-                      level: 3
-                    })
-                    .run()
-                }
-              >
-                <Heading3 size={17} />
-              </button>
+              disabled={
 
-            </div>
+                !editor.can()
 
-            <span className="toolbar-separator" />
+                  .chain()
 
-            {/* TEXTO */}
+                  .focus()
 
-            <div className="toolbar-group">
+                  .undo()
 
-              <button
-                type="button"
-                title="Negrita"
-                className={
-                  editor.isActive('bold')
-                    ? 'active'
-                    : ''
-                }
-                onClick={() =>
-                  editor
-                    .chain()
-                    .focus()
-                    .toggleBold()
-                    .run()
-                }
-              >
-                <Bold size={17} />
-              </button>
+                  .run()
 
-              <button
-                type="button"
-                title="Cursiva"
-                className={
-                  editor.isActive('italic')
-                    ? 'active'
-                    : ''
-                }
-                onClick={() =>
-                  editor
-                    .chain()
-                    .focus()
-                    .toggleItalic()
-                    .run()
-                }
-              >
-                <Italic size={17} />
-              </button>
+              }
 
-              <button
-                type="button"
-                title="Tachado"
-                onClick={() =>
-                  editor
-                    .chain()
-                    .focus()
-                    .toggleStrike()
-                    .run()
-                }
-              >
-                <Strikethrough size={17} />
-              </button>
+            >
 
-            </div>
+              <Undo2 size={18} />
 
-            <span className="toolbar-separator" />
+            </ToolbarButton>
 
-            {/* LISTAS */}
 
-            <div className="toolbar-group">
+            <ToolbarButton
 
-              <button
-                type="button"
-                title="Lista"
-                onClick={() =>
-                  editor
-                    .chain()
-                    .focus()
-                    .toggleBulletList()
-                    .run()
-                }
-              >
-                <List size={17} />
-              </button>
+              title="Rehacer"
 
-              <button
-                type="button"
-                title="Lista numerada"
-                onClick={() =>
-                  editor
-                    .chain()
-                    .focus()
-                    .toggleOrderedList()
-                    .run()
-                }
-              >
-                <ListOrdered size={17} />
-              </button>
+              onClick={() =>
 
-            </div>
+                editor
 
-            <span className="toolbar-separator" />
+                  .chain()
 
-            {/* ALINEACIÓN */}
+                  .focus()
 
-            <div className="toolbar-group">
+                  .redo()
 
-              <button
-                type="button"
-                title="Izquierda"
-                onClick={() =>
-                  alinearImagen('left')
-                }
-                disabled={!selectedImage}
-              >
-                <AlignLeft size={17} />
-              </button>
+                  .run()
 
-              <button
-                type="button"
-                title="Centro"
-                onClick={() =>
-                  alinearImagen('center')
-                }
-                disabled={!selectedImage}
-              >
-                <AlignCenter size={17} />
-              </button>
+              }
 
-              <button
-                type="button"
-                title="Derecha"
-                onClick={() =>
-                  alinearImagen('right')
-                }
-                disabled={!selectedImage}
-              >
-                <AlignRight size={17} />
-              </button>
+              disabled={
 
-            </div>
+                !editor.can()
 
-            <span className="toolbar-separator" />
+                  .chain()
 
-            {/* ENLACE */}
+                  .focus()
 
-            <div className="toolbar-group">
+                  .redo()
 
-              <button
-                type="button"
-                title="Insertar enlace"
-                onClick={insertarLink}
-              >
-                <LinkIcon size={17} />
-              </button>
+                  .run()
 
-            </div>
+              }
 
-            {/* IMAGEN */}
+            >
 
-            <div className="toolbar-group">
+              <Redo2 size={18} />
 
-              <button
-                type="button"
-                title="Insertar imagen desde computadora"
-                onClick={abrirSelectorImagen}
-                disabled={uploadingImage}
-              >
-
-                {uploadingImage
-                  ? '...'
-                  : <ImageIcon size={17} />
-                }
-
-              </button>
-
-            </div>
-
-            {/* HERRAMIENTAS DE IMAGEN */}
-
-            {selectedImage && (
-
-              <>
-
-                <span className="toolbar-separator" />
-
-                <div className="toolbar-group">
-
-                  <button
-                    type="button"
-                    title="Cambiar tamaño"
-                    onClick={cambiarTamanoImagen}
-                  >
-                    <Type size={17} />
-                  </button>
-
-                  <button
-                    type="button"
-                    title="Texto alternativo"
-                    onClick={cambiarAltImagen}
-                  >
-                    ALT
-                  </button>
-
-                  <button
-                    type="button"
-                    title="Agregar enlace a imagen"
-                    onClick={agregarLinkImagen}
-                  >
-                    <LinkIcon size={17} />
-                  </button>
-
-                  <button
-                    type="button"
-                    title="Eliminar imagen"
-                    onClick={eliminarImagen}
-                  >
-                    <Trash2 size={17} />
-                  </button>
-
-                </div>
-
-              </>
-
-            )}
+            </ToolbarButton>
 
           </div>
 
-        </>
+
+          <div className="toolbar-separator" />
+
+
+          {/* TÍTULOS */}
+
+          <div className="toolbar-group">
+
+            <ToolbarButton
+
+              title="Título 1"
+
+              active={editor.isActive('heading', {
+
+                level: 1,
+
+              })}
+
+              onClick={() =>
+
+                editor
+
+                  .chain()
+
+                  .focus()
+
+                  .toggleHeading({
+
+                    level: 1,
+
+                  })
+
+                  .run()
+
+              }
+
+            >
+
+              <Heading1 size={18} />
+
+            </ToolbarButton>
+
+
+            <ToolbarButton
+
+              title="Título 2"
+
+              active={editor.isActive('heading', {
+
+                level: 2,
+
+              })}
+
+              onClick={() =>
+
+                editor
+
+                  .chain()
+
+                  .focus()
+
+                  .toggleHeading({
+
+                    level: 2,
+
+                  })
+
+                  .run()
+
+              }
+
+            >
+
+              <Heading2 size={18} />
+
+            </ToolbarButton>
+
+
+            <ToolbarButton
+
+              title="Título 3"
+
+              active={editor.isActive('heading', {
+
+                level: 3,
+
+              })}
+
+              onClick={() =>
+
+                editor
+
+                  .chain()
+
+                  .focus()
+
+                  .toggleHeading({
+
+                    level: 3,
+
+                  })
+
+                  .run()
+
+              }
+
+            >
+
+              <Heading3 size={18} />
+
+            </ToolbarButton>
+
+          </div>
+
+
+          <div className="toolbar-separator" />
+
+
+          {/* FORMATO */}
+
+          <div className="toolbar-group">
+
+            <ToolbarButton
+
+              title="Negrita"
+
+              active={editor.isActive('bold')}
+
+              onClick={() =>
+
+                editor
+
+                  .chain()
+
+                  .focus()
+
+                  .toggleBold()
+
+                  .run()
+
+              }
+
+            >
+
+              <Bold size={18} />
+
+            </ToolbarButton>
+
+
+            <ToolbarButton
+
+              title="Cursiva"
+
+              active={editor.isActive('italic')}
+
+              onClick={() =>
+
+                editor
+
+                  .chain()
+
+                  .focus()
+
+                  .toggleItalic()
+
+                  .run()
+
+              }
+
+            >
+
+              <Italic size={18} />
+
+            </ToolbarButton>
+
+
+            <ToolbarButton
+
+              title="Subrayado"
+
+              active={editor.isActive('underline')}
+
+              onClick={() =>
+
+                editor
+
+                  .chain()
+
+                  .focus()
+
+                  .toggleUnderline()
+
+                  .run()
+
+              }
+
+            >
+
+              <UnderlineIcon size={18} />
+
+            </ToolbarButton>
+
+
+            <ToolbarButton
+
+              title="Tachado"
+
+              active={editor.isActive('strike')}
+
+              onClick={() =>
+
+                editor
+
+                  .chain()
+
+                  .focus()
+
+                  .toggleStrike()
+
+                  .run()
+
+              }
+
+            >
+
+              <Strikethrough size={18} />
+
+            </ToolbarButton>
+
+          </div>
+
+
+          <div className="toolbar-separator" />
+
+
+          {/* ALINEACIÓN */}
+
+          <div className="toolbar-group">
+
+            <ToolbarButton
+
+              title="Alinear izquierda"
+
+              active={
+
+                editor.isActive({
+
+                  textAlign: 'left',
+
+                })
+
+              }
+
+              onClick={() =>
+
+                editor
+
+                  .chain()
+
+                  .focus()
+
+                  .setTextAlign('left')
+
+                  .run()
+
+              }
+
+            >
+
+              <AlignLeft size={18} />
+
+            </ToolbarButton>
+
+
+            <ToolbarButton
+
+              title="Centrar"
+
+              active={
+
+                editor.isActive({
+
+                  textAlign: 'center',
+
+                })
+
+              }
+
+              onClick={() =>
+
+                editor
+
+                  .chain()
+
+                  .focus()
+
+                  .setTextAlign('center')
+
+                  .run()
+
+              }
+
+            >
+
+              <AlignCenter size={18} />
+
+            </ToolbarButton>
+
+
+            <ToolbarButton
+
+              title="Alinear derecha"
+
+              active={
+
+                editor.isActive({
+
+                  textAlign: 'right',
+
+                })
+
+              }
+
+              onClick={() =>
+
+                editor
+
+                  .chain()
+
+                  .focus()
+
+                  .setTextAlign('right')
+
+                  .run()
+
+              }
+
+            >
+
+              <AlignRight size={18} />
+
+            </ToolbarButton>
+
+
+            <ToolbarButton
+
+              title="Justificar"
+
+              active={
+
+                editor.isActive({
+
+                  textAlign: 'justify',
+
+                })
+
+              }
+
+              onClick={() =>
+
+                editor
+
+                  .chain()
+
+                  .focus()
+
+                  .setTextAlign('justify')
+
+                  .run()
+
+              }
+
+            >
+
+              <AlignJustify size={18} />
+
+            </ToolbarButton>
+
+          </div>
+
+
+          <div className="toolbar-separator" />
+
+
+          {/* LISTAS */}
+
+          <div className="toolbar-group">
+
+            <ToolbarButton
+
+              title="Lista"
+
+              active={editor.isActive('bulletList')}
+
+              onClick={() =>
+
+                editor
+
+                  .chain()
+
+                  .focus()
+
+                  .toggleBulletList()
+
+                  .run()
+
+              }
+
+            >
+
+              <List size={18} />
+
+            </ToolbarButton>
+
+
+            <ToolbarButton
+
+              title="Lista numerada"
+
+              active={editor.isActive('orderedList')}
+
+              onClick={() =>
+
+                editor
+
+                  .chain()
+
+                  .focus()
+
+                  .toggleOrderedList()
+
+                  .run()
+
+              }
+
+            >
+
+              <ListOrdered size={18} />
+
+            </ToolbarButton>
+
+          </div>
+
+
+          <div className="toolbar-separator" />
+
+
+          {/* CITA */}
+
+          <div className="toolbar-group">
+
+            <ToolbarButton
+
+              title="Cita"
+
+              active={editor.isActive('blockquote')}
+
+              onClick={() =>
+
+                editor
+
+                  .chain()
+
+                  .focus()
+
+                  .toggleBlockquote()
+
+                  .run()
+
+              }
+
+            >
+
+              <Quote size={18} />
+
+            </ToolbarButton>
+
+          </div>
+
+
+          <div className="toolbar-separator" />
+
+
+          {/* IMAGEN */}
+
+          <div className="toolbar-group">
+
+            <ToolbarButton
+
+              title="Agregar imagen desde mi PC"
+
+              onClick={addImageFromComputer}
+
+            >
+
+              <ImagePlus size={18} />
+
+            </ToolbarButton>
+
+          </div>
+
+
+          <div className="toolbar-separator" />
+
+
+          {/* LINK */}
+
+          <div className="toolbar-group">
+
+            <ToolbarButton
+
+              title="Agregar enlace"
+
+              active={editor.isActive('link')}
+
+              onClick={addLink}
+
+            >
+
+              <LinkIcon size={18} />
+
+            </ToolbarButton>
+
+
+            <ToolbarButton
+
+              title="Quitar enlace"
+
+              disabled={!editor.isActive('link')}
+
+              onClick={() =>
+
+                editor
+
+                  .chain()
+
+                  .focus()
+
+                  .unsetLink()
+
+                  .run()
+
+              }
+
+            >
+
+              <Unlink size={18} />
+
+            </ToolbarButton>
+
+          </div>
+
+
+          <div className="toolbar-separator" />
+
+
+          {/* SEPARADOR */}
+
+          <div className="toolbar-group">
+
+            <ToolbarButton
+
+              title="Línea horizontal"
+
+              onClick={() =>
+
+                editor
+
+                  .chain()
+
+                  .focus()
+
+                  .setHorizontalRule()
+
+                  .run()
+
+              }
+
+            >
+
+              <Minus size={18} />
+
+            </ToolbarButton>
+
+          </div>
+
+
+        </div>
 
       )}
 
-      {/* DOCUMENTO */}
+
+      {/* =================================================
+          ÁREA CON SCROLL
+      ================================================= */}
 
       <div className="editor-scroll-area">
 
+
+        {/* =================================================
+            HOJA
+        ================================================= */}
+
         <div
-          className={
-            `editor-document ${
-              editable
-                ? 'editor-document-editable'
-                : 'editor-document-readonly'
-            }`
-          }
+
+          className={`editor-document ${
+
+            readOnly
+
+              ? 'editor-document-readonly'
+
+              : 'editor-document-editable'
+
+          }`}
+
         >
 
           <EditorContent
+
             editor={editor}
+
           />
 
         </div>
 
+
       </div>
+
 
     </div>
 
   );
+
 }

@@ -27,14 +27,10 @@ import '../css/temas_tecnologico.css';
 /* ==========================================================
    INTERFACES
 ========================================================== */
-
 interface Subtopic {
   id?: number;
-
   name: string;
-
   desc: string;
-
   content: string;
 }
 
@@ -2205,29 +2201,17 @@ export default function Temas() {
                 }}
               >
 
-                <RichEditor
+           <RichEditor
+  content={topics[editingSub.t].subs[editingSub.s].content}
+  readOnly={!isDocente || isPreview}
+  onChange={(html) => {
+    const newTopics = [...topics];
 
-                  content={
-                    topics[
-                      editingSub.t
-                    ].subs[
-                      editingSub.s
-                    ].content
-                  }
+    newTopics[editingSub.t].subs[editingSub.s].content = html;
 
-                  editable={
-                    isDocente &&
-                    !isPreview
-                  }
-
-                  onChange={
-                    isDocente &&
-                    !isPreview
-                      ? updateEditorContent
-                      : undefined
-                  }
-
-                />
+    setTopics(newTopics);
+  }}
+/>
 
               </div>
 
